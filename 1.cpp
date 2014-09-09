@@ -3,17 +3,16 @@
 #include <iostream>
 #include <vector>
 #include <stdio.h>
+#include "math.h"
 #include <stdlib.h> 
 #include <utility>
-
+#include "vec.cpp"
 using namespace std;
 
 double spx,spy,spz;
 int viewx,viewy;
 
-struct vector3d{
-    double x,y,z;
-};
+
 
 class Sphere{
   vector3d c;
@@ -31,57 +30,105 @@ class Object{
   Sphere s;
   Plane p;
   double ka[3],kd[3],ks[3];
+  double exp;
 };
 
 
+ class lightsource{
+  double intensity[3];
+  vector3d direction;
+  
+ };
 
 
-vector3d cross_prod(vector3d u,vector3d v)
+
+struct rgbf {float r; float g; float b;};
+//WBL 9 May 2007 Based on
+//http://www.codeguru.com/cpp/w-d/dislog/commondialogs/article.php/c1861/
+//Common.h
+void toRGBf(const float h, const float s, const float v,
+      rgbf* rgb)
 {
-    vector3d a;
-    a.x=u.y*v.z-u.z*v.y;
-    a.y=u.z*v.x-u.x*v.z;
-    a.z=u.x*v.y-v.x*u.y;
-    return a;
+  /*
+RGBType rgb;
+  if(!h  && !s)
+  {
+    rgb.r = rgb.g = rgb.b = v;
+  }
+  */
+  //rgbf* rgb = (rgbf*) out;
+double min,max,delta,hue;
+  
+  max = v;
+  delta = max * s;
+  min = max - delta;
+
+  hue = h;
+  if(h > 300 || h <= 60)
+  {
+    rgb->r = max;
+    if(h > 300)
+    {
+      rgb->g = min;
+      hue = (hue - 360.0)/60.0;
+      rgb->b = ((hue * delta - min) * -1);
+    }
+    else
+    {
+      rgb->b = min;
+      hue = hue / 60.0;
+      rgb->g = (hue * delta + min);
+    }
+  }
+  else
+  if(h > 60 && h < 180)
+  {
+    rgb->g = max;
+    if(h < 120)
+    {
+      rgb->b = min;
+      hue = (hue/60.0 - 2.0 ) * delta;
+      rgb->r = min - hue;
+    }
+    else
+    {
+      rgb->r = min;
+      hue = (hue/60 - 2.0) * delta;
+      rgb->b = (min + hue);
+    }
+  }
+  else
+  {
+    rgb->b = max;
+    if(h < 240)
+    {
+      rgb->r = min;
+      hue = (hue/60.0 - 4.0 ) * delta;
+      rgb->g = (min - hue);
+    }
+    else
+    {
+      rgb->g = min;
+      hue = (hue/60 - 4.0) * delta;
+      rgb->r = (min + hue);
+    }
+  }
 }
 
-vector3d norm(vector3d c)
-{
-    vector3d p;
-    double a=sqrt(c.x*c.x+c.y*c.y+c.z*c.z);
-    p.x=c.x/a;p.y=c.y/a;p.z=c.z/a;
-    return p;
+
+//Convert a wide range of data values into nice colours 
+void colour(const float data, float* out) {
+  //convert data to angle
+  const float a = atan2(data,1)/(2*atan2(1,1)); // -1 .. +1
+  const float angle = (1+a)*180; //red=0 at -1,+1
+
+  const float saturation = 1;
+
+  const float h = (data<-1||data>1)? 1 : fabs(data);
+
+  toRGBf(angle,saturation,h,(rgbf*)out);
 }
 
-vector3d scalarmulti(double x,vector3d y)
-{
-    vector3d o;
-    o.x=x*y.x;
-    o.y=x*y.y;
-    o.z=x*y.z;
-    return o;
-}
-
-vector3d subvec(vector3d a,vector3d b)
-{
-    vector3d g;
-    g.x=a.x-b.x;
-    g.y=a.y-b.y;
-    g.z=a.z-b.z;
-    return g;
-}
-vector3d addvec(vector3d a,vector3d b)
-{
-    vector3d g;
-    g.x=a.x+b.x;
-    g.y=a.y+b.y;
-    g.z=a.z+b.z;
-    return g;
-}
-double dot(vector3d a,vector3d b)
-{
-  return a.x*b.x+a.y*b.y+a.z*b.z;
-}
 
 
 void specialKeys( int key, int x, int y ) {
@@ -121,12 +168,23 @@ void specialKeys( int key, int x, int y ) {
 
 void display()
 {
-
-     glMatrixMode(GL_MODELVIEW);
+    glMatrixMode(GL_MODELVIEW);
     // clear the drawing buffer.
     glClear(GL_COLOR_BUFFER_BIT);
+    float* pixels = new float[viewx*viewy*3];
+    for(int i=0;i<viewx*viewy;i++) {
+    colour(10.0-((i*20.0)/(viewx*viewy)),&pixels[i*3]);
+  } 
+
+  //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  //http://msdn2.microsoft.com/en-us/library/ms537062.aspx
+  //glDrawPixels writes a block of pixels to the framebuffer.
+
+  glDrawPixels(viewx,viewy,GL_RGB,GL_FLOAT,pixels);
+
     glFlush();        
-   glutSwapBuffers();
+    glutSwapBuffers();
 
 }
 
@@ -144,11 +202,20 @@ void reshape(int x, int y)
 
 
 
+
+
+
+
+
+
+
+
+
 int main (int argc, char **argv)
 {
     
     glutInit(&argc, argv); 
-    viewx=350;viewy=350;
+    viewx=512;viewy=512;
     glutInitWindowSize(viewx,viewy);
     glutCreateWindow("Solid Sphere");
     spx=0.0;spy=0.0;spz=0.0;
