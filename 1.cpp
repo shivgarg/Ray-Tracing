@@ -11,6 +11,9 @@ using namespace std;
 
 double spx,spy,spz;
 int viewx,viewy;
+vector3d vcs,u,v,n,eye;
+double disteye;
+int viewl,viewb;
 
 
 
@@ -45,6 +48,7 @@ public:
 };
 
 class Object{
+ public: 
   int type;
   Sphere s;
   Plane p;
@@ -59,13 +63,15 @@ class Object{
   
  };
 
+vector<Object> obj;
+
 double area(vector3d a, vector3d b, vector3d c)
 {
    return mod(cross_prod(subvec(a,b),subvec(a,c)));
 }
 
 
-bool intersectPlane(Plane p, vector3d origin,vector3d direct , double &t)
+bool intersectPlane(Plane p, vector3d origin,vector3d direct , double &t,int px,int py)
 {
     // assuming vectors are all normalized
 
@@ -85,7 +91,7 @@ bool intersectPlane(Plane p, vector3d origin,vector3d direct , double &t)
 }
 
 
-bool intersectsphere(Sphere * c,double *t,Ray * r)
+bool intersectsphere(Sphere * c,double *t,Ray * r,int px,int py)
 {
       vector3d l=cross_prod(subvec(r->org,c->c),r->dir);
       double dist=mod(l);
@@ -199,39 +205,6 @@ void colour(const float data, float* out) {
 
 
 
-void specialKeys( int key, int x, int y ) {
- 
-  //  Right arrow - increase rotation by 5 degree
-  // if (key == GLUT_KEY_RIGHT)
-  //   rotate_y += 5;
- 
-  // //  Left arrow - decrease rotation by 5 degree
-  // else if (key == GLUT_KEY_LEFT)
-  //   rotate_y -= 5;
- 
-  // else if (key == GLUT_KEY_UP)
-  //   rotate_x += 5;
- 
-  // else if (key == GLUT_KEY_DOWN)
-  //   rotate_x -= 5;
-  // else if(key==GLUT_KEY_F1)
-  //   view=0;
-  // else if(key==GLUT_KEY_F2)
-  //   view=1;
-  // else if(key==GLUT_KEY_F3)
-  //   view=2;
-  // else if(key==GLUT_KEY_F4)
-  //   view=3;
-  // else if(key==GLUT_KEY_F7)
-  //   view=4;
-
- 
-  //  Request display update
-  glutPostRedisplay();
- 
-}
-
-
 
 
 void display()
@@ -244,11 +217,7 @@ void display()
     colour(10.0-((i*20.0)/(viewx*viewy)),&pixels[i*3]);
   } 
 
-  //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-  //http://msdn2.microsoft.com/en-us/library/ms537062.aspx
-  //glDrawPixels writes a block of pixels to the framebuffer.
-
+  
   glDrawPixels(viewx,viewy,GL_RGB,GL_FLOAT,pixels);
 
     glFlush();        
@@ -269,12 +238,40 @@ void reshape(int x, int y)
 } 
 
 
+vector3d viewporttovcs(int x,int y)
+{
+  x=x-viewx/2;y=viewy/2-y;
+  vector3d f=addvec(scalarmulti(x,u),scalarmulti(y,v));
+  f=addvec(f,vcs);
+  return f;
+}
 
 
 
 
+void raytracer()
+{
+   glMatrixMode(GL_MODELVIEW);
+    // clear the drawing buffer.
+  glClear(GL_COLOR_BUFFER_BIT);
+  float* pixels = new float[viewx*viewy*3];
+  for(int i=0;i<viewx*viewy;i++)
+  {
+    vector3d f=viewporttovcs(i%viewx,i/viewy);
+    Ray rt(eye,norm(subvec(f,eye)));
+    double t = 10000000000000;
+    int h=obj.size();
+    for(int j=0;j<h;j++)
+    {
+      Object a=obj[j];
+      if(a.type==1)
+        intersectsphere(&(a.s),&t,&rt,i%viewx,i/viewy);
+      else
+        intersectPlane((a.p),rt.org,rt.dir,t,i%viewx,i/viewy);
 
-
+    }
+  }
+}
 
 
 
@@ -286,6 +283,11 @@ int main (int argc, char **argv)
     viewx=512;viewy=512;
     glutInitWindowSize(viewx,viewy);
     glutCreateWindow("Solid Sphere");
+    n=cross_prod(u,v);
+    n=norm(n);
+    eye=subvec(vcs,scalarmulti(disteye,n));
+
+
     double t=0;
     Plane p(new vector3d(1.0,0.0,0.0),new vector3d(0.0,1.0,0.0),new vector3d(0.0,0.0,0.0));
     vector3d a(0.9,0.9,-0.2);
@@ -295,11 +297,11 @@ int main (int argc, char **argv)
     //p.z=a;
    // p.y(1.0,0.0,0.0);
     //p.z = new vector3d(1,1,1);
-     bool z = intersectPlane(p,a,b,t);
+     bool z = intersectPlane(p,a,b,t,0,0);
      //cout<< "here"<<t<<endl;
     Sphere sd(vector3d(0,0,0),5);
     Ray rt(vector3d(0,-10,0),vector3d(1,0,0));
-    bool y=intersectsphere(&sd,&t,&rt);
+    bool y=intersectsphere(&sd,&t,&rt,0,0);
     if(z)
       cout <<"here"<<t <<endl;
     else
@@ -308,7 +310,7 @@ int main (int argc, char **argv)
 
 
     spx=0.0;spy=0.0;spz=0.0;
-    glutSpecialFunc(specialKeys);
+   
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutMainLoop();
