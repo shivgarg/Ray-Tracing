@@ -21,10 +21,7 @@ class Ray{
   {
     org=a;dir=b;
   }
-
 };
-
-
 
 
 class Sphere{
@@ -43,12 +40,8 @@ public:
   vector3d x,y,z;
   Plane(){};
   Plane(vector3d *a,vector3d *b, vector3d *c){
-    x=*a;
-    y=*b;
-    z=*c;
+    x=*a;y=*b;z=*c;
   }
-
-
 };
 
 class Object{
@@ -66,9 +59,13 @@ class Object{
   
  };
 
+double area(vector3d a, vector3d b, vector3d c)
+{
+   return mod(cross_prod(subvec(a,b),subvec(a,c)));
+}
 
 
-bool intersectPlane(Plane p, vector3d origin,vector3d direct , float &t)
+bool intersectPlane(Plane p, vector3d origin,vector3d direct , double &t)
 {
     // assuming vectors are all normalized
 
@@ -76,14 +73,19 @@ bool intersectPlane(Plane p, vector3d origin,vector3d direct , float &t)
     float denom = dot(normal, direct);
     if (denom > 1e-6) {
         vector3d a = subvec(p.x , origin);
-        t = dot(a, normal) / denom; 
-        return (t >= 0);
+        t = dot(a, normal) / denom;
+        vector3d point;
+        point  = addvec(origin, scalarmulti(t,direct));
+        if(t>=0){
+          //cout<<area(point,p.x,p.y)<<" "<<area(point,p.z,p.y)<<" "<<area(point,p.x,p.z)<<" "<<area(p.z,p.x,p.y)<<endl;
+          return ((area(point,p.x,p.y)+area(point,p.z,p.y)+area(point,p.x,p.z)) == area(p.z,p.x,p.y));
+        }
     }
     return false;
 }
 
 
-bool intersectsphere(Sphere * c,double * t,Ray * r)
+bool intersectsphere(Sphere * c,double *t,Ray * r)
 {
       vector3d l=cross_prod(subvec(r->org,c->c),r->dir);
       double dist=mod(l);
@@ -286,21 +288,24 @@ int main (int argc, char **argv)
     glutCreateWindow("Solid Sphere");
     double t=0;
     Plane p(new vector3d(1.0,0.0,0.0),new vector3d(0.0,1.0,0.0),new vector3d(0.0,0.0,0.0));
-    vector3d a(0.1,0.1,-0.2);
+    vector3d a(0.9,0.9,-0.2);
     vector3d b(0.0,0.0,1.0);
  //   p.x=a;
     //p.y=a;
     //p.z=a;
    // p.y(1.0,0.0,0.0);
     //p.z = new vector3d(1,1,1);
-   // intersectPlane(p,a,b,t);
+     bool z = intersectPlane(p,a,b,t);
+     //cout<< "here"<<t<<endl;
     Sphere sd(vector3d(0,0,0),5);
     Ray rt(vector3d(0,-10,0),vector3d(1,0,0));
     bool y=intersectsphere(&sd,&t,&rt);
-    if(y)
+    if(z)
       cout <<"here"<<t <<endl;
     else
       cout << "didnt intersect"<< endl;
+
+
 
     spx=0.0;spy=0.0;spz=0.0;
     glutSpecialFunc(specialKeys);
