@@ -9,11 +9,31 @@
 using namespace std;
 
 double spx,spy,spz;
-
+int viewx,viewy;
 
 struct vector3d{
     double x,y,z;
 };
+
+class Sphere{
+  vector3d c;
+  double r;
+
+};
+
+class Plane{
+  vector3d x,y,z;
+
+};
+
+class Object{
+  int type;
+  Sphere s;
+  Plane p;
+  double ka[3],kd[3],ks[3];
+};
+
+
 
 
 vector3d cross_prod(vector3d u,vector3d v)
@@ -128,7 +148,8 @@ int main (int argc, char **argv)
 {
     
     glutInit(&argc, argv); 
-    glutInitWindowSize(350,350);
+    viewx=350;viewy=350;
+    glutInitWindowSize(viewx,viewy);
     glutCreateWindow("Solid Sphere");
     spx=0.0;spy=0.0;spz=0.0;
     glutSpecialFunc(specialKeys);
