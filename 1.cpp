@@ -14,9 +14,27 @@ int viewx,viewy;
 
 
 
+class Ray{
+ public: 
+  vector3d org,dir;
+  Ray(vector3d a,vector3d b)
+  {
+    org=a;dir=b;
+  }
+
+};
+
+
+
+
 class Sphere{
+ public: 
   vector3d c;
   double r;
+  Sphere(vector3d a,double rad)
+  {
+    c=a;r=rad;
+  }
 
 };
 
@@ -64,6 +82,31 @@ bool intersectPlane(Plane p, vector3d origin,vector3d direct , float &t)
     return false;
 }
 
+
+bool intersectsphere(Sphere * c,double * t,Ray * r)
+{
+      vector3d l=cross_prod(subvec(r->org,c->c),r->dir);
+      double dist=mod(l);
+      if(dist>c->r)
+      {
+        return false;
+      }
+      else
+      {        
+        double b=2.0*(r->dir.x*(r->org.x-c->c.x)+r->dir.y*(r->org.y-c->c.y)+r->dir.z*(r->org.z-c->c.z));
+        double d=(r->org.x-c->c.x)*(r->org.x-c->c.x)+(r->org.y-c->c.y)*(r->org.y-c->c.y)+(r->org.y-c->c.z)*(r->org.z-c->c.z)-(c->r)*(c->r);
+        double t0=(-b-sqrt(b*b-4*d))/2.0;
+        double t1=(-b+sqrt(b*b-4*d))/2.0;
+        if(t0<t1)
+          *t=t0;
+        else
+          *t=t1;
+        return true;
+
+      }
+
+
+}
 
 struct rgbf {float r; float g; float b;};
 //WBL 9 May 2007 Based on
@@ -241,7 +284,7 @@ int main (int argc, char **argv)
     viewx=512;viewy=512;
     glutInitWindowSize(viewx,viewy);
     glutCreateWindow("Solid Sphere");
-    float t=0;
+    double t=0;
     Plane p(new vector3d(1.0,0.0,0.0),new vector3d(0.0,1.0,0.0),new vector3d(0.0,0.0,0.0));
     vector3d a(0.1,0.1,-0.2);
     vector3d b(0.0,0.0,1.0);
@@ -250,8 +293,14 @@ int main (int argc, char **argv)
     //p.z=a;
    // p.y(1.0,0.0,0.0);
     //p.z = new vector3d(1,1,1);
-    intersectPlane(p,a,b,t);
-    cout <<"here"<<t <<endl;
+   // intersectPlane(p,a,b,t);
+    Sphere sd(vector3d(0,0,0),5);
+    Ray rt(vector3d(0,-10,0),vector3d(1,0,0));
+    bool y=intersectsphere(&sd,&t,&rt);
+    if(y)
+      cout <<"here"<<t <<endl;
+    else
+      cout << "didnt intersect"<< endl;
 
     spx=0.0;spy=0.0;spz=0.0;
     glutSpecialFunc(specialKeys);

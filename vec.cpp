@@ -54,3 +54,9 @@ double dot(vector3d a,vector3d b)
 {
   return a.x*b.x+a.y*b.y+a.z*b.z;
 }
+
+
+double mod(vector3d a)
+{
+    return sqrt(a.x*a.x+a.y*a.y+a.z*a.z);
+}
