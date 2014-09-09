@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <stdio.h>
+#include <algorithm>
 #include "math.h"
 #include <stdlib.h> 
 #include <utility>
@@ -10,13 +11,13 @@
 #include "vec.cpp"
 using namespace std;
 
-double spx,spy,spz;
+//double spx,spy,spz;
 int viewx,viewy;
 vector3d vcs,u,v,n,eye;
 double disteye;
 int viewl,viewb;
-int currentpixelintensity[3]={0,0,0};
-int ambientintensity[3]={0.1,0.1,0.1};
+//int currentpixelintensity[3]={0,0,0};
+float ambientintensity[3]={0.1,0.1,0.1};
 
 
 
@@ -34,6 +35,7 @@ class Sphere{
  public: 
   vector3d c;
   double r;
+  Sphere(){};
   Sphere(vector3d a,double rad)
   {
     c=a;r=rad;
@@ -57,6 +59,15 @@ class Object{
   Plane p;
   double ka[3],kd[3],ks[3];
   double exp;
+  Object(int a, Sphere b){
+    type = a;
+    s = b;
+  }
+  Object(int a, Plane b){
+    type = a;
+    p = b;
+  }
+
 };
 
 
@@ -64,7 +75,8 @@ class Object{
  public:
   double intensity[3];
   vector3d direction;
-  
+  lightsource(){};
+  lightsource(double a,double b,double c,vector3d d){intensity[0]=a;intensity[1]=b;intensity[2]=c;direction=d;};
  };
 
 vector<Object> obj;
@@ -77,24 +89,36 @@ double area(vector3d a, vector3d b, vector3d c)
 
 void ambient( float*f,Object o){
   for(int i=0;i<3;i++){
-    *(f+i)+= o.ka[i]*ambientintensity[i];
+    //cout<<"before "<<*(f+i)<<endl;
+    *(f+i) += o.ka[i]*ambientintensity[i];
+    //cout<<"after "<<o.ka[i]*ambientintensity[i]<<endl;
+
+
 //  currentpixelintensity[1]+= o.ka[1]*ambientintensity[1];
 //  currentpixelintensity[2]+= o.ka[2]*ambientintensity[2];
   }
+
+  //cout<<"ambient "<<*(f)<<endl;
 }
 
 void diffuse(float*f,lightsource l, vector3d normal, Object o){
   for(int i=0;i<3;i++){
-    *(f+i)+= o.kd[i]*(l.intensity[i])*dot(l.direction,normal);
+    double temp = o.kd[i]*(l.intensity[i])*dot(l.direction,normal);
+    // if(temp<0){
+    //   temp=0;
+    // }
+    *(f+i)+= max(temp,0.0);
   }
   // currentpixelintensity[1]+= o.kd[0]*(l.intensity[0])*dot(l.direction,normal);
   // currentpixelintensity[2]+= o.kd[0]*(l.intensity[0])*dot(l.direction,normal);
+  //cout<<"ambient "<<*(f)<<endl;
 
 }
 
 void specular(float*f,lightsource l, vector3d normal, Object o){
   for(int i=0;i<3;i++){
-    *(f+i)+= o.ks[i]*(l.intensity[i])*(pow(dot(l.direction,normal),o.exp));
+    double temp = o.ks[i]*(l.intensity[i])*(pow(dot(l.direction,normal),o.exp));
+    *(f+i)+= temp;
   }
   // currentpixelintensity[1]+= o.kd[0]*(l.intensity[0])*dot(l.direction,normal);
   // currentpixelintensity[2]+= o.kd[0]*(l.intensity[0])*dot(l.direction,normal);
@@ -147,82 +171,6 @@ bool intersectsphere(Sphere * c,double *t,Ray * r,int px,int py)
 
 }
 
-struct rgbf {float r; float g; float b;};
-void toRGBf(const float h, const float s, const float v,
-      rgbf* rgb)
-{
-
-double min,max,delta,hue;
-  
-  max = v;
-  delta = max * s;
-  min = max - delta;
-
-  hue = h;
-  if(h > 300 || h <= 60)
-  {
-    rgb->r = max;
-    if(h > 300)
-    {
-      rgb->g = min;
-      hue = (hue - 360.0)/60.0;
-      rgb->b = ((hue * delta - min) * -1);
-    }
-    else
-    {
-      rgb->b = min;
-      hue = hue / 60.0;
-      rgb->g = (hue * delta + min);
-    }
-  }
-  else
-  if(h > 60 && h < 180)
-  {
-    rgb->g = max;
-    if(h < 120)
-    {
-      rgb->b = min;
-      hue = (hue/60.0 - 2.0 ) * delta;
-      rgb->r = min - hue;
-    }
-    else
-    {
-      rgb->r = min;
-      hue = (hue/60 - 2.0) * delta;
-      rgb->b = (min + hue);
-    }
-  }
-  else
-  {
-    rgb->b = max;
-    if(h < 240)
-    {
-      rgb->r = min;
-      hue = (hue/60.0 - 4.0 ) * delta;
-      rgb->g = (min - hue);
-    }
-    else
-    {
-      rgb->g = min;
-      hue = (hue/60 - 4.0) * delta;
-      rgb->r = (min + hue);
-    }
-  }
-}
-
-
-//Convert a wide range of data values into nice colours 
-void colour(const float data, float* out) {
-  //convert data to angle
-  const float a = atan2(data,1)/(2*atan2(1,1)); // -1 .. +1
-  const float angle = (1+a)*180; //red=0 at -1,+1
-
-  const float saturation = 1;
-
-  const float h = (data<-1||data>1)? 1 : fabs(data);
-
-  toRGBf(angle,saturation,h,(rgbf*)out);
-}
 
 
 
@@ -235,7 +183,7 @@ void display()
     glClear(GL_COLOR_BUFFER_BIT);
     float* pixels = new float[viewx*viewy*3];
     for(int i=0;i<viewx*viewy;i++) {
-    colour(10.0-((i*20.0)/(viewx*viewy)),&pixels[i*3]);
+    //colour(10.0-((i*20.0)/(viewx*viewy)),&pixels[i*3]);
   } 
 
   
@@ -262,9 +210,9 @@ void reshape(int x, int y)
 vector3d viewporttovcs(int x,int y)
 {
   x=x-viewx/2;y=viewy/2-y;
-  x = x*viewl/viewx;
-  y = y*viewb/viewy;
-  vector3d f=addvec(scalarmulti(x,u),scalarmulti(y,v));
+  float x1  =  (float)(x)*viewl/viewx;
+  float y1 = (float)(y)*viewb/viewy;
+  vector3d f=addvec(scalarmulti(x1,u),scalarmulti(y1,v));
   f=addvec(f,vcs);
   return f;
 }
@@ -302,6 +250,7 @@ void raytracer()
     }
     if(t!=INT_MAX){
       Object a = obj[intersectid];
+      //cout<<"ka"<<a.ka[0]<<endl;
       if(a.type==1){
         normal = norm(subvec(addvec(eye,scalarmulti(t,rt.dir)),a.s.c));
       }
@@ -318,8 +267,18 @@ void raytracer()
       for(int r=0;r<lightsources.size();r++){
         specular(&pixels[3*i],lightsources[r],normal,a);
       }
+      cout << pixels[3*i]<< " red"<< endl;
+      cout << pixels[3*i+1]<< ""<< endl;
+      cout << pixels[3*i+2]<< ""<< endl;
+      // cout<<pixels[3*i]<<endl;
+      // cout<<pixels[3*i+1]<<endl;
+      // cout<<pixels[3*i+2]<<endl;
     }
   }
+    glDrawPixels(viewx,viewy,GL_RGB,GL_FLOAT,pixels);
+
+    glFlush();        
+    glutSwapBuffers();
 }
 
 
@@ -332,9 +291,30 @@ int main (int argc, char **argv)
     viewx=512;viewy=512;
     glutInitWindowSize(viewx,viewy);
     glutCreateWindow("Solid Sphere");
+    u = vector3d(1,0,0);
+    v = vector3d(0,1,0);
+    vector3d vcs = vector3d(0,0,0);
+    disteye = 5;
+    viewl = 100;
+    viewb = 100;
     n=cross_prod(u,v);
     n=norm(n);
+
     eye=subvec(vcs,scalarmulti(disteye,n));
+    Object o(1, Sphere(vector3d(0.0,0.0,0.0),4));
+    o.ka[0]=1;
+    o.ka[1]=0;
+    o.ka[2]=0;
+    o.kd[0]=0.3;
+    o.kd[1]=0;
+    o.kd[2]=0;
+    o.ks[0]=0.8;
+    o.ks[1]=0;
+    o.ks[2]=0;
+    o.exp=5.0;
+    obj.push_back(o);
+    lightsource ll = lightsource( 0.7,0.7,0.7 ,vector3d(0.4,0.4,-0.824621125));
+    lightsources.push_back(ll);
     //obj.push_back();
 
     double t=0;
@@ -358,9 +338,9 @@ int main (int argc, char **argv)
 
 
 
-    spx=0.0;spy=0.0;spz=0.0;
+    //spx=0.0;spy=0.0;spz=0.0;
    
-    glutDisplayFunc(display);
+    glutDisplayFunc(raytracer);
     glutReshapeFunc(reshape);
     glutMainLoop();
 
