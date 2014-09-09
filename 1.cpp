@@ -6,6 +6,7 @@
 #include "math.h"
 #include <stdlib.h> 
 #include <utility>
+#include <climits>
 #include "vec.cpp"
 using namespace std;
 
@@ -14,6 +15,8 @@ int viewx,viewy;
 vector3d vcs,u,v,n,eye;
 double disteye;
 int viewl,viewb;
+int currentpixelintensity[3]={0,0,0};
+int ambientintensity[3]={0.1,0.1,0.1};
 
 
 
@@ -58,16 +61,44 @@ class Object{
 
 
  class lightsource{
+ public:
   double intensity[3];
   vector3d direction;
   
  };
 
 vector<Object> obj;
+vector<lightsource> lightsources;
 
 double area(vector3d a, vector3d b, vector3d c)
 {
    return mod(cross_prod(subvec(a,b),subvec(a,c)));
+}
+
+void ambient( float*f,Object o){
+  for(int i=0;i<3;i++){
+    *(f+i)+= o.ka[i]*ambientintensity[i];
+//  currentpixelintensity[1]+= o.ka[1]*ambientintensity[1];
+//  currentpixelintensity[2]+= o.ka[2]*ambientintensity[2];
+  }
+}
+
+void diffuse(float*f,lightsource l, vector3d normal, Object o){
+  for(int i=0;i<3;i++){
+    *(f+i)+= o.kd[i]*(l.intensity[i])*dot(l.direction,normal);
+  }
+  // currentpixelintensity[1]+= o.kd[0]*(l.intensity[0])*dot(l.direction,normal);
+  // currentpixelintensity[2]+= o.kd[0]*(l.intensity[0])*dot(l.direction,normal);
+
+}
+
+void specular(float*f,lightsource l, vector3d normal, Object o){
+  for(int i=0;i<3;i++){
+    *(f+i)+= o.ks[i]*(l.intensity[i])*(pow(dot(l.direction,normal),o.exp));
+  }
+  // currentpixelintensity[1]+= o.kd[0]*(l.intensity[0])*dot(l.direction,normal);
+  // currentpixelintensity[2]+= o.kd[0]*(l.intensity[0])*dot(l.direction,normal);
+
 }
 
 
@@ -117,20 +148,10 @@ bool intersectsphere(Sphere * c,double *t,Ray * r,int px,int py)
 }
 
 struct rgbf {float r; float g; float b;};
-//WBL 9 May 2007 Based on
-//http://www.codeguru.com/cpp/w-d/dislog/commondialogs/article.php/c1861/
-//Common.h
 void toRGBf(const float h, const float s, const float v,
       rgbf* rgb)
 {
-  /*
-RGBType rgb;
-  if(!h  && !s)
-  {
-    rgb.r = rgb.g = rgb.b = v;
-  }
-  */
-  //rgbf* rgb = (rgbf*) out;
+
 double min,max,delta,hue;
   
   max = v;
@@ -241,6 +262,8 @@ void reshape(int x, int y)
 vector3d viewporttovcs(int x,int y)
 {
   x=x-viewx/2;y=viewy/2-y;
+  x = x*viewl/viewx;
+  y = y*viewb/viewy;
   vector3d f=addvec(scalarmulti(x,u),scalarmulti(y,v));
   f=addvec(f,vcs);
   return f;
@@ -259,16 +282,42 @@ void raytracer()
   {
     vector3d f=viewporttovcs(i%viewx,i/viewy);
     Ray rt(eye,norm(subvec(f,eye)));
-    double t = 10000000000000;
+    double t = INT_MAX;
     int h=obj.size();
+    double k=t;
+    vector3d normal;
+    int intersectid;
     for(int j=0;j<h;j++)
     {
       Object a=obj[j];
+      //bool intersect = false;
       if(a.type==1)
-        intersectsphere(&(a.s),&t,&rt,i%viewx,i/viewy);
+        intersectsphere(&(a.s),&k,&rt,i%viewx,i/viewy);
       else
-        intersectPlane((a.p),rt.org,rt.dir,t,i%viewx,i/viewy);
-
+        intersectPlane((a.p),rt.org,rt.dir,k,i%viewx,i/viewy);
+      if(k<t){
+        t=k;
+        intersectid=j;
+      } 
+    }
+    if(t!=INT_MAX){
+      Object a = obj[intersectid];
+      if(a.type==1){
+        normal = norm(subvec(addvec(eye,scalarmulti(t,rt.dir)),a.s.c));
+      }
+      else{
+        normal = norm(cross_prod(subvec(a.p.x,a.p.y),subvec(a.p.x,a.p.z)));
+      }
+      pixels[3*i] = 0;
+      pixels[3*i+1] = 0;
+      pixels[3*i+2] = 0;
+      ambient(&pixels[3*i],a);
+      for(int r=0;r<lightsources.size();r++){
+        diffuse(&pixels[3*i],lightsources[r],normal,a);
+      }
+      for(int r=0;r<lightsources.size();r++){
+        specular(&pixels[3*i],lightsources[r],normal,a);
+      }
     }
   }
 }
@@ -286,7 +335,7 @@ int main (int argc, char **argv)
     n=cross_prod(u,v);
     n=norm(n);
     eye=subvec(vcs,scalarmulti(disteye,n));
-
+    //obj.push_back();
 
     double t=0;
     Plane p(new vector3d(1.0,0.0,0.0),new vector3d(0.0,1.0,0.0),new vector3d(0.0,0.0,0.0));
