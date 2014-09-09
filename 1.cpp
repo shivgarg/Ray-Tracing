@@ -21,7 +21,15 @@ class Sphere{
 };
 
 class Plane{
+public:
   vector3d x,y,z;
+  Plane(){};
+  Plane(vector3d *a,vector3d *b, vector3d *c){
+    x=*a;
+    y=*b;
+    z=*c;
+  }
+
 
 };
 
@@ -40,6 +48,21 @@ class Object{
   
  };
 
+
+
+bool intersectPlane(Plane p, vector3d origin,vector3d direct , float &t)
+{
+    // assuming vectors are all normalized
+
+    vector3d normal =  norm(cross_prod(subvec(p.x,p.y),subvec(p.x,p.z)));
+    float denom = dot(normal, direct);
+    if (denom > 1e-6) {
+        vector3d a = subvec(p.x , origin);
+        t = dot(a, normal) / denom; 
+        return (t >= 0);
+    }
+    return false;
+}
 
 
 struct rgbf {float r; float g; float b;};
@@ -218,10 +241,25 @@ int main (int argc, char **argv)
     viewx=512;viewy=512;
     glutInitWindowSize(viewx,viewy);
     glutCreateWindow("Solid Sphere");
+    float t=0;
+    Plane p(new vector3d(1.0,0.0,0.0),new vector3d(0.0,1.0,0.0),new vector3d(0.0,0.0,0.0));
+    vector3d a(0.1,0.1,-0.2);
+    vector3d b(0.0,0.0,1.0);
+ //   p.x=a;
+    //p.y=a;
+    //p.z=a;
+   // p.y(1.0,0.0,0.0);
+    //p.z = new vector3d(1,1,1);
+    intersectPlane(p,a,b,t);
+    cout <<"here"<<t <<endl;
+
     spx=0.0;spy=0.0;spz=0.0;
     glutSpecialFunc(specialKeys);
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutMainLoop();
+
+
+
     return 0;
 }

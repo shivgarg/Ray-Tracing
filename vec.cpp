@@ -1,5 +1,10 @@
+#include "math.h"
+
+
 struct vector3d{
     double x,y,z;
+    vector3d(){};
+    vector3d(double a,double b,double c): x(a),y(b),z(c){}
 };
 
 
