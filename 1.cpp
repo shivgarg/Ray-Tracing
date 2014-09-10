@@ -223,7 +223,6 @@ vector3d viewporttovcs(int x,int y)
 void raytracer()
 {
    glMatrixMode(GL_MODELVIEW);
-    // clear the drawing buffer.
   glClear(GL_COLOR_BUFFER_BIT);
   float* pixels = new float[viewx*viewy*3];
   for(int i=0;i<viewx*viewy;i++)
@@ -238,7 +237,6 @@ void raytracer()
     for(int j=0;j<h;j++)
     {
       Object a=obj[j];
-      //bool intersect = false;
       if(a.type==1)
         intersectsphere(&(a.s),&k,&rt,i%viewx,i/viewy);
       else
@@ -248,11 +246,10 @@ void raytracer()
         intersectid=j;
       } 
     }
-    if(t!=INT_MAX){
+    if(t!=INT_MAX){//shadow part pending
       Object a = obj[intersectid];
-      //cout<<"ka"<<a.ka[0]<<endl;
       if(a.type==1){
-        normal = norm(subvec(addvec(eye,scalarmulti(t,rt.dir)),a.s.c));
+        normal = norm(subvec(addvec(rt.org,scalarmulti(t,rt.dir)),a.s.c));
       }
       else{
         normal = norm(cross_prod(subvec(a.p.x,a.p.y),subvec(a.p.x,a.p.z)));
@@ -267,16 +264,9 @@ void raytracer()
       for(int r=0;r<lightsources.size();r++){
         specular(&pixels[3*i],lightsources[r],normal,a);
       }
-      cout << pixels[3*i]<< " red"<< endl;
-      cout << pixels[3*i+1]<< ""<< endl;
-      cout << pixels[3*i+2]<< ""<< endl;
-      // cout<<pixels[3*i]<<endl;
-      // cout<<pixels[3*i+1]<<endl;
-      // cout<<pixels[3*i+2]<<endl;
     }
   }
     glDrawPixels(viewx,viewy,GL_RGB,GL_FLOAT,pixels);
-
     glFlush();        
     glutSwapBuffers();
 }
@@ -294,14 +284,26 @@ int main (int argc, char **argv)
     u = vector3d(1,0,0);
     v = vector3d(0,1,0);
     vector3d vcs = vector3d(0,0,0);
-    disteye = 5;
-    viewl = 100;
-    viewb = 100;
+    disteye = 6;
+    viewl = 50;
+    viewb = 50;
     n=cross_prod(u,v);
     n=norm(n);
 
     eye=subvec(vcs,scalarmulti(disteye,n));
-    Object o(1, Sphere(vector3d(0.0,0.0,0.0),4));
+    Object o(1, Sphere(vector3d(0.0,0.0,0.0),5.5));
+    o.ka[0]=1;
+    o.ka[1]=0;
+    o.ka[2]=0;
+    o.kd[0]=0.3;
+    o.kd[1]=0;
+    o.kd[2]=0;
+    o.ks[0]=0.8;
+    o.ks[1]=0;
+    o.ks[2]=0;
+    o.exp=5.0;
+    //obj.push_back(o);
+    o = Object(1, Sphere(vector3d(1.0,1.0,0.0),5.5));
     o.ka[0]=1;
     o.ka[1]=0;
     o.ka[2]=0;
