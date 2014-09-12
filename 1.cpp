@@ -89,16 +89,16 @@ double area(vector3d a, vector3d b, vector3d c)
 
 void ambient( float*f,Object o){
   for(int i=0;i<3;i++){
-    //cout<<"before "<<*(f+i)<<endl;
+    ////cout<<"before "<<*(f+i)<<endl;
     *(f+i) += o.ka[i]*ambientintensity[i];
-    //cout<<"after "<<o.ka[i]*ambientintensity[i]<<endl;
+    ////cout<<"after "<<o.ka[i]*ambientintensity[i]<<endl;
 
 
 //  currentpixelintensity[1]+= o.ka[1]*ambientintensity[1];
 //  currentpixelintensity[2]+= o.ka[2]*ambientintensity[2];
   }
 
-  //cout<<"ambient "<<*(f)<<endl;
+  ////cout<<"ambient "<<*(f)<<endl;
 }
 
 void diffuse(float*f,lightsource l, vector3d normal, Object o){
@@ -111,7 +111,7 @@ void diffuse(float*f,lightsource l, vector3d normal, Object o){
   }
   // currentpixelintensity[1]+= o.kd[0]*(l.intensity[0])*dot(l.direction,normal);
   // currentpixelintensity[2]+= o.kd[0]*(l.intensity[0])*dot(l.direction,normal);
-  //cout<<"ambient "<<*(f)<<endl;
+  ////cout<<"ambient "<<*(f)<<endl;
 
 }
 
@@ -141,7 +141,7 @@ bool intersectPlane(Plane p, vector3d origin,vector3d direct , double &t,int px,
         vector3d point;
         point  = addvec(origin, scalarmulti(t,direct));
         if(t>=0){
-          //cout<<area(point,p.x,p.y)<<" "<<area(point,p.z,p.y)<<" "<<area(point,p.x,p.z)<<" "<<area(p.z,p.x,p.y)<<endl;
+          ////cout<<area(point,p.x,p.y)<<" "<<area(point,p.z,p.y)<<" "<<area(point,p.x,p.z)<<" "<<area(p.z,p.x,p.y)<<endl;
           return ((area(point,p.x,p.y)+area(point,p.z,p.y)+area(point,p.x,p.z)) == area(p.z,p.x,p.y));
         }
     }
@@ -152,7 +152,9 @@ bool intersectPlane(Plane p, vector3d origin,vector3d direct , double &t,int px,
 bool intersectsphere(Sphere * c,double *t,Ray * r,int px,int py)
 {
       vector3d l=cross_prod(subvec(r->org,c->c),r->dir);
+
       double dist=mod(l);
+      //cout << dist << "distance"<< endl;  
       if(dist>c->r)
       {
         return false;
@@ -160,15 +162,22 @@ bool intersectsphere(Sphere * c,double *t,Ray * r,int px,int py)
       else
       {        
         double b=2.0*(r->dir.x*(r->org.x-c->c.x)+r->dir.y*(r->org.y-c->c.y)+r->dir.z*(r->org.z-c->c.z));
-        double d=(r->org.x-c->c.x)*(r->org.x-c->c.x)+(r->org.y-c->c.y)*(r->org.y-c->c.y)+(r->org.y-c->c.z)*(r->org.z-c->c.z)-(c->r)*(c->r);
-        double t0=(-b-sqrt(b*b-4*d))/2.0;
-        double t1=(-b+sqrt(b*b-4*d))/2.0;
-        if(t0<t1)
-          *t=t0;
-        else
-          *t=t1;
-        return true;
+        double d=(r->org.x-c->c.x)*(r->org.x-c->c.x)+(r->org.y-c->c.y)*(r->org.y-c->c.y)+(r->org.z-c->c.z)*(r->org.z-c->c.z)-(c->r)*(c->r);
+        double t0=(-b-sqrt(b*b-4.0*d))/2.0;
+        double t1=(-b+sqrt(b*b-4.0*d))/2.0;
+        //cout << "b "<< b <<  " d "<< b << endl;
+//      
+        //cout << "to "<< t0 <<  " t1 "<< t1 << endl;
+//        if(t0<t1)
 
+          if((min(t0,t1))>0){
+           *t=min(t0,t1);
+            return true;
+
+          }
+          else{
+            return false;
+          }
       }
 
 
@@ -213,7 +222,7 @@ void reshape(int x, int y)
 
 vector3d viewporttovcs(int x,int y)
 {
-  x=x-viewx/2.0;y=-viewy/2.0+y;
+  x=x-viewx/2.0;y=viewy/2.0-y;
   float x1  =  (float)(x)*((float)viewl)/((float)viewx);
   float y1 = (float)(y)*((float)viewb)/((float)viewy);
   vector3d f=addvec(scalarmulti(x1,u),scalarmulti(y1,v));
@@ -284,6 +293,8 @@ void raytracer()
     vector3d f=viewporttovcs(i%viewx,i/viewx);
 
     Ray rt(eye,norm(subvec(f,eye)));
+     //cout << rt.org.x<< " "<< rt.org.y << " "<<rt.org.z << " primary ray origin "<< endl;
+     //cout << rt.dir.x<< " "<< rt.dir.y << " "<<rt.dir.z << " primary ray direction "<< endl;
     double t = INT_MAX;
     int h=obj.size();
     double k=t;
@@ -291,17 +302,36 @@ void raytracer()
     int intersectid;
     for(int j=0;j<h;j++)
     {
-      Object a=obj[j];
+      Object a=obj[j];bool p;
       if(a.type==1)
-        intersectsphere(&(a.s),&k,&rt,i%viewx,i/viewy);
+        {
+          //cout << "F "<< f.x<<" "<< f.y<<" "<< f.z << "vcs "<<endl;
+          //cout << rt.org.x<< " "<< rt.org.y << " "<<rt.org.z << " primary ray origin "<< endl;
+          //cout << rt.dir.x<< " "<< rt.dir.y << " "<<rt.dir.z << " primary ray direction "<< endl;
+          //cout <<a.s.c.x<<" "<<a.s.c.y<<" "<<a.s.c.z<<" sphere origin  "<<a.s.r<<endl;
+
+          p=intersectsphere(&(a.s),&k,&rt,i%viewx,i/viewy);
+          if(!p)
+          {
+            //cout << "Not intersecting"<< endl;
+
+          }
+          else
+          {
+            vector3d asd=addvec(rt.org,scalarmulti(k,rt.dir));
+            //cout << "point intersection "<< asd.x<<" "<< asd.y<<" "<< asd.z<< endl;
+          }
+
+        }
       else
-        intersectPlane((a.p),rt.org,rt.dir,k,i%viewx,i/viewy);
+        p=intersectPlane((a.p),rt.org,rt.dir,k,i%viewx,i/viewy);
       if(k<t){
         t=k;
         intersectid=j;
       } 
     }
     if(t!=INT_MAX){//shadow part pending
+      //cout << "T in dsdsdsds  " << t << endl;
       Object a = obj[intersectid];
       if(a.type==1){
         normal = norm(subvec(addvec(rt.org,scalarmulti(t,rt.dir)),a.s.c));
@@ -318,17 +348,19 @@ void raytracer()
       {
         bool l =false;
         vector3d src=addvec(rt.org,scalarmulti(t,rt.dir));
-        Ray ty(src,subvec(vector3d(0,0,0),lightsources[r].direction));
+        //cout << src.x<< " "<< src.y << " "<<src.z << " ray origin "<< endl;
+        Ray ty(src,scalarmulti(-1,lightsources[r].direction));
         for(int j=0;j<h;j++)
         {
           if(j==intersectid){
-            //cout << "herererererer   "<<endl;
             continue;
           }
           Object a=obj[j];
           if(a.type==1)
             {
+            //cout << "herererererer   "<<endl;
                l=intersectsphere(&(a.s),&k,&ty,i%viewx,i/viewy);
+               //cout<< ty.org.x<<endl;
                if(l)
                 { //cout << "J "<< j << "R "<< intersectid<< endl;
               break;}
@@ -387,24 +419,24 @@ int main (int argc, char **argv)
 {
     
     glutInit(&argc, argv); 
-    viewx=512;viewy=512;viewl = 50;
+    viewx=500;viewy=500;viewl = 50;
     viewb = 50;
     //vector3d f=viewporttovcs(0,viewy/2);
-    //cout <<"sdsdsds   "<< f.x <<" "<< f.y << " "<<f.z <<endl;
+    ////cout <<"sdsdsds   "<< f.x <<" "<< f.y << " "<<f.z <<endl;
     glutInitWindowSize(viewx,viewy);
     glutCreateWindow("Solid Sphere");
     u = vector3d(1,0,0);
     v = vector3d(0,1,0);
     vector3d vcs = vector3d(0,0,0);
-    disteye = 8;
+    disteye = 12;
     
     n=cross_prod(u,v);
     n=norm(n);
     
 
     eye=subvec(vcs,scalarmulti(disteye,n));
-    cout <<"normal "<< eye.x << " "<<eye.y<<" "<< eye.z<< endl;
-    Object o(1, Sphere(vector3d(0.0,0.0,0.0),5));
+    //cout <<"normal "<< eye.x << " "<<eye.y<<" "<< eye.z<< endl;
+    Object o(1, Sphere(vector3d(0.0,0.0,0.0),6));
     o.ka[0]=1;
     o.ka[1]=0;
     o.ka[2]=0;
@@ -416,7 +448,7 @@ int main (int argc, char **argv)
     o.ks[2]=1.0;
     o.exp=50.0;
    obj.push_back(o);
-    o = Object(1, Sphere(vector3d(0.0,0.0,2.0),2.5));
+    o = Object(1, Sphere(vector3d(0.0,0.0,-7.0),1.5));
     o.ka[0]=1;
     o.ka[1]=1;
     o.ka[2]=1;
@@ -428,30 +460,30 @@ int main (int argc, char **argv)
     o.ks[2]=1;
     o.exp=250.0;
     obj.push_back(o);
-    lightsource ll = lightsource( 1,1,1 ,vector3d(0,0,1));
+    lightsource ll = lightsource( 1,1,1 ,vector3d(-0.707,0,0.707));
     //lightsource ll = lightsource( 1,1,1 ,vector3d(0.577,0.577,0.577));
     //lightsource ll = lightsource( 1,1,1 ,vector3d(0,0,1.0));
     lightsources.push_back(ll);
     //obj.push_back();
 
     double t=0;
-    Plane p(new vector3d(1.0,0.0,0.0),new vector3d(0.0,1.0,0.0),new vector3d(0.0,0.0,0.0));
-    vector3d a(0.9,0.9,-0.2);
-    vector3d b(0.0,0.0,1.0);
- //   p.x=a;
-    //p.y=a;
-    //p.z=a;
-   // p.y(1.0,0.0,0.0);
-    //p.z = new vector3d(1,1,1);
-     bool z = intersectPlane(p,a,b,t,0,0);
-     //cout<< "here"<<t<<endl;
-    Sphere sd(vector3d(0,0,0),5);
-    Ray rt(vector3d(0,-10,0),vector3d(1,0,0));
-    bool y=intersectsphere(&sd,&t,&rt,0,0);
-    if(z)
-      cout <<"here"<<t <<endl;
-    else
-      cout << "didnt intersect"<< endl;
+ //    Plane p(new vector3d(1.0,0.0,0.0),new vector3d(0.0,1.0,0.0),new vector3d(0.0,0.0,0.0));
+ //    vector3d a(0.9,0.9,-0.2);
+ //    vector3d b(0.0,0.0,1.0);
+ // //   p.x=a;
+ //    //p.y=a;
+ //    //p.z=a;
+ //   // p.y(1.0,0.0,0.0);
+ //    //p.z = new vector3d(1,1,1);
+ //     bool z = intersectPlane(p,a,b,t,0,0);
+     ////cout<< "here"<<t<<endl;
+    // Sphere sd(vector3d(0,0,0),5);
+    // Ray rt(vector3d(0,-10,0),vector3d(1,0,0));
+    // bool y=intersectsphere(&sd,&t,&rt,0,0);
+    // if(z)
+    //   //cout <<"here"<<t <<endl;
+    // else
+    //   //cout << "didnt intersect"<< endl;
 
 
 
