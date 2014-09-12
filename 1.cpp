@@ -107,7 +107,7 @@ void diffuse(float*f,lightsource l, vector3d normal, Object o){
     // if(temp<0){
     //   temp=0;
     // }
-    *(f+i)+= max(temp,0.0);
+    *(f+i)+= max(-1*temp,0.0);
   }
   // currentpixelintensity[1]+= o.kd[0]*(l.intensity[0])*dot(l.direction,normal);
   // currentpixelintensity[2]+= o.kd[0]*(l.intensity[0])*dot(l.direction,normal);
@@ -115,10 +115,13 @@ void diffuse(float*f,lightsource l, vector3d normal, Object o){
 
 }
 
-void specular(float*f,lightsource l, vector3d normal, Object o){
+void specular(float*f,lightsource l, vector3d normal, vector3d v,Object o){
+  vector3d r = addvec(l.direction,scalarmulti(-2*dot(l.direction,normal),normal));
+    //vector3d v = ;
   for(int i=0;i<3;i++){
-    double temp = o.ks[i]*(l.intensity[i])*(pow(dot(l.direction,normal),o.exp));
-    *(f+i)+= temp;
+    double temp = o.ks[i]*(l.intensity[i])*(pow(dot(r,v),o.exp));
+    //if(o.exp)
+    *(f+i)+= max(temp,0.0);
   }
   // currentpixelintensity[1]+= o.kd[0]*(l.intensity[0])*dot(l.direction,normal);
   // currentpixelintensity[2]+= o.kd[0]*(l.intensity[0])*dot(l.direction,normal);
@@ -200,6 +203,7 @@ void reshape(int x, int y)
     if (y == 0 || x == 0) return;   
     glMatrixMode(GL_PROJECTION);  
     glLoadIdentity(); 
+
     //gluPerspective(39.0,(GLdouble)x/(GLdouble)y,0.6,21.0);
     glOrtho(-10.0, 10.0, -10.0, 10.0, -100.0, 100.0);
     glMatrixMode(GL_MODELVIEW);
@@ -209,25 +213,76 @@ void reshape(int x, int y)
 
 vector3d viewporttovcs(int x,int y)
 {
-  x=x-viewx/2;y=viewy/2-y;
-  float x1  =  (float)(x)*viewl/viewx;
-  float y1 = (float)(y)*viewb/viewy;
+  x=x-viewx/2.0;y=-viewy/2.0+y;
+  float x1  =  (float)(x)*((float)viewl)/((float)viewx);
+  float y1 = (float)(y)*((float)viewb)/((float)viewy);
   vector3d f=addvec(scalarmulti(x1,u),scalarmulti(y1,v));
   f=addvec(f,vcs);
   return f;
 }
 
+// void rayTracerRecurse(Ray rt,)
+// {
+//    glMatrixMode(GL_MODELVIEW);
+//   glClear(GL_COLOR_BUFFER_BIT);
+//   float* pixels = new float[viewx*viewy*3];
+//   for(int i=0;i<viewx*viewy;i++)
+//   {
+//     vector3d f=viewporttovcs(i%viewx,i/viewy);
+//     Ray rt(eye,norm(subvec(f,eye)));
+//     double t = INT_MAX;
+//     int h=obj.size();
+//     double k=t;
+//     vector3d normal;
+//     int intersectid;
+//     for(int j=0;j<h;j++)
+//     {
+//       Object a=obj[j];
+//       if(a.type==1)
+//         intersectsphere(&(a.s),&k,&rt,i%viewx,i/viewy);
+//       else
+//         intersectPlane((a.p),rt.org,rt.dir,k,i%viewx,i/viewy);
+//       if(k<t){
+//         t=k;
+//         intersectid=j;
+//       } 
+//     }
+//     if(t!=INT_MAX){//shadow part pending
+//       Object a = obj[intersectid];
+//       if(a.type==1){
+//         normal = norm(subvec(addvec(rt.org,scalarmulti(t,rt.dir)),a.s.c));
+//       }
+//       else{
+//         normal = norm(cross_prod(subvec(a.p.x,a.p.y),subvec(a.p.x,a.p.z)));
+//       }
+//       pixels[3*i] = 0;
+//       pixels[3*i+1] = 0;
+//       pixels[3*i+2] = 0;
+//       ambient(&pixels[3*i],a);
+//       for(int r=0;r<lightsources.size();r++){
+//         diffuse(&pixels[3*i],lightsources[r],normal,a);
+//       }
+//       for(int r=0;r<lightsources.size();r++){
+//         specular(&pixels[3*i],lightsources[r],normal,a);
+//       }
+//     }
+//   }
+//     glDrawPixels(viewx,viewy,GL_RGB,GL_FLOAT,pixels);
+//     glFlush();        
+//     glutSwapBuffers();
+// }
 
 
 
 void raytracer()
 {
-   glMatrixMode(GL_MODELVIEW);
+  glMatrixMode(GL_MODELVIEW);
   glClear(GL_COLOR_BUFFER_BIT);
   float* pixels = new float[viewx*viewy*3];
   for(int i=0;i<viewx*viewy;i++)
   {
-    vector3d f=viewporttovcs(i%viewx,i/viewy);
+    vector3d f=viewporttovcs(i%viewx,i/viewx);
+
     Ray rt(eye,norm(subvec(f,eye)));
     double t = INT_MAX;
     int h=obj.size();
@@ -258,14 +313,68 @@ void raytracer()
       pixels[3*i+1] = 0;
       pixels[3*i+2] = 0;
       ambient(&pixels[3*i],a);
-      for(int r=0;r<lightsources.size();r++){
-        diffuse(&pixels[3*i],lightsources[r],normal,a);
+
+      for(int r=0;r<lightsources.size();r++)
+      {
+        bool l =false;
+        vector3d src=addvec(rt.org,scalarmulti(t,rt.dir));
+        Ray ty(src,subvec(vector3d(0,0,0),lightsources[r].direction));
+        for(int j=0;j<h;j++)
+        {
+          if(j==intersectid){
+            //cout << "herererererer   "<<endl;
+            continue;
+          }
+          Object a=obj[j];
+          if(a.type==1)
+            {
+               l=intersectsphere(&(a.s),&k,&ty,i%viewx,i/viewy);
+               if(l)
+                { //cout << "J "<< j << "R "<< intersectid<< endl;
+              break;}
+
+            }
+          else
+          {
+            l=intersectPlane((a.p),ty.org,ty.dir,k,i%viewx,i/viewy);
+            if(l)
+              break;
+          }
+        }
+        if(!l)
+          {
+            diffuse(&pixels[3*i],lightsources[r],normal,a);specular(&pixels[3*i],lightsources[r],normal,scalarmulti(-1,rt.dir),a);
+          }
+         
       }
-      for(int r=0;r<lightsources.size();r++){
-        specular(&pixels[3*i],lightsources[r],normal,a);
-      }
+      // for(int r=0;r<lightsources.size();r++)
+      // {
+      //   bool l =false;
+      //   vector3d src=addvec(rt.org,scalarmulti(t,rt.dir);
+      //   Ray ty(src,subvec(vector3d(0,0,0),lightsources[r].direction));
+      //   for(int j=0;j<h;j++)
+      //   {
+      //     Object a=obj[j];
+      //     if(a.type==1)
+      //       {
+      //          l=intersectsphere(&(a.s),&k,&ty,i%viewx,i/viewy);
+      //          if(l)
+      //           break;
+
+      //       }
+      //     else
+      //     {
+      //       l=intersectPlane((a.p),ty.org,ty.dir,k,i%viewx,i/viewy);
+      //       if(l)
+      //         break;
+      //     }
+      //   }
+      //   if(!l)
+      //     specular(&pixels[3*i],lightsources[r],normal,a);
+      // }
     }
   }
+
     glDrawPixels(viewx,viewy,GL_RGB,GL_FLOAT,pixels);
     glFlush();        
     glutSwapBuffers();
@@ -278,44 +387,50 @@ int main (int argc, char **argv)
 {
     
     glutInit(&argc, argv); 
-    viewx=512;viewy=512;
+    viewx=512;viewy=512;viewl = 50;
+    viewb = 50;
+    //vector3d f=viewporttovcs(0,viewy/2);
+    //cout <<"sdsdsds   "<< f.x <<" "<< f.y << " "<<f.z <<endl;
     glutInitWindowSize(viewx,viewy);
     glutCreateWindow("Solid Sphere");
     u = vector3d(1,0,0);
     v = vector3d(0,1,0);
     vector3d vcs = vector3d(0,0,0);
-    disteye = 6;
-    viewl = 50;
-    viewb = 50;
+    disteye = 8;
+    
     n=cross_prod(u,v);
     n=norm(n);
+    
 
     eye=subvec(vcs,scalarmulti(disteye,n));
-    Object o(1, Sphere(vector3d(0.0,0.0,0.0),5.5));
+    cout <<"normal "<< eye.x << " "<<eye.y<<" "<< eye.z<< endl;
+    Object o(1, Sphere(vector3d(0.0,0.0,0.0),5));
     o.ka[0]=1;
     o.ka[1]=0;
     o.ka[2]=0;
     o.kd[0]=0.3;
-    o.kd[1]=0;
-    o.kd[2]=0;
-    o.ks[0]=0.8;
-    o.ks[1]=0;
-    o.ks[2]=0;
-    o.exp=5.0;
-    //obj.push_back(o);
-    o = Object(1, Sphere(vector3d(1.0,1.0,0.0),5.5));
+    o.kd[1]=0.5;
+    o.kd[2]=1.0;
+    o.ks[0]=1.0;
+    o.ks[1]=1.0;
+    o.ks[2]=1.0;
+    o.exp=50.0;
+   obj.push_back(o);
+    o = Object(1, Sphere(vector3d(0.0,0.0,2.0),2.5));
     o.ka[0]=1;
-    o.ka[1]=0;
-    o.ka[2]=0;
-    o.kd[0]=0.3;
-    o.kd[1]=0;
-    o.kd[2]=0;
-    o.ks[0]=0.8;
-    o.ks[1]=0;
-    o.ks[2]=0;
-    o.exp=5.0;
+    o.ka[1]=1;
+    o.ka[2]=1;
+    o.kd[0]=1;
+    o.kd[1]=1;
+    o.kd[2]=1;
+    o.ks[0]=1;
+    o.ks[1]=1;
+    o.ks[2]=1;
+    o.exp=250.0;
     obj.push_back(o);
-    lightsource ll = lightsource( 0.7,0.7,0.7 ,vector3d(0.4,0.4,-0.824621125));
+    lightsource ll = lightsource( 1,1,1 ,vector3d(0,0,1));
+    //lightsource ll = lightsource( 1,1,1 ,vector3d(0.577,0.577,0.577));
+    //lightsource ll = lightsource( 1,1,1 ,vector3d(0,0,1.0));
     lightsources.push_back(ll);
     //obj.push_back();
 
