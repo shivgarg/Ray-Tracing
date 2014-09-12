@@ -196,77 +196,77 @@ vector3d viewporttovcs(int x,int y)
   return f;
 }
 
-void rayTracerRecurse(Ray rt, int i, int level, float *pixels)){
-     double t = INT_MAX;
-     int h=obj.size();
-     double k=t;
-     int intersectid;
-    for(int j=0;j<h;j++)
-    {
-      Object a=obj[j];bool p;
-      if(a.type==1)
-        {
-          p=intersectsphere(&(a.s),&k,&rt);
-        }
-      else
-        p=intersectPlane((a.p),rt.org,rt.dir,k);
-      if(k<t){
-        t=k;
-        intersectid=j;
-      } 
-    }
-    if(t!=INT_MAX){
-      Object a = obj[intersectid];
-      if(a.type==1){
-        normal = norm(subvec(addvec(rt.org,scalarmulti(t,rt.dir)),a.s.c));
-      }
-      else{
-        normal = norm(cross_prod(subvec(a.p.x,a.p.y),subvec(a.p.x,a.p.z)));
-      }
-      // = 0;
-      //pixels[3*i+1] = 0;
-      //pixels[3*i+2] = 0;
-      //ambient(&pixels[3*i],a);
+// void rayTracerRecurse(Ray rt, int i, int level, float *pixels)){
+//      double t = INT_MAX;
+//      int h=obj.size();
+//      double k=t;
+//      int intersectid;
+//     for(int j=0;j<h;j++)
+//     {
+//       Object a=obj[j];bool p;
+//       if(a.type==1)
+//         {
+//           p=intersectsphere(&(a.s),&k,&rt);
+//         }
+//       else
+//         p=intersectPlane((a.p),rt.org,rt.dir,k);
+//       if(k<t){
+//         t=k;
+//         intersectid=j;
+//       } 
+//     }
+//     if(t!=INT_MAX){
+//       Object a = obj[intersectid];
+//       if(a.type==1){
+//         normal = norm(subvec(addvec(rt.org,scalarmulti(t,rt.dir)),a.s.c));
+//       }
+//       else{
+//         normal = norm(cross_prod(subvec(a.p.x,a.p.y),subvec(a.p.x,a.p.z)));
+//       }
+//       // = 0;
+//       //pixels[3*i+1] = 0;
+//       //pixels[3*i+2] = 0;
+//       //ambient(&pixels[3*i],a);
 
-//////////////// SHadow///////////////////////
-      for(int r=0;r<lightsources.size();r++)
-      {
-        bool l =false;
-        vector3d src=addvec(rt.org,scalarmulti(t,rt.dir));
-        Ray ty(src,scalarmulti(-1,lightsources[r].direction));
-        for(int j=0;j<h;j++)
-        {
-          if(j==intersectid){
-            continue;
-          }
-          Object a=obj[j];
-          if(a.type==1)
-            {
-               l=intersectsphere(&(a.s),&k,&ty);
-               if(l)
-                { //cout << "J "<< j << "R "<< intersectid<< endl;
-              break;}
+// //////////////// SHadow///////////////////////
+//       for(int r=0;r<lightsources.size();r++)
+//       {
+//         bool l =false;
+//         vector3d src=addvec(rt.org,scalarmulti(t,rt.dir));
+//         Ray ty(src,scalarmulti(-1,lightsources[r].direction));
+//         for(int j=0;j<h;j++)
+//         {
+//           if(j==intersectid){
+//             continue;
+//           }
+//           Object a=obj[j];
+//           if(a.type==1)
+//             {
+//                l=intersectsphere(&(a.s),&k,&ty);
+//                if(l)
+//                 { //cout << "J "<< j << "R "<< intersectid<< endl;
+//               break;}
 
-            }
-          else
-          {
-            l=intersectPlane((a.p),ty.org,ty.dir,k);
-            if(l)
-              break;
-          }
-        }
-        double ret=0;
-        if(!l)
-          {
-            retr+=diffuse(&pixels[3*i],lightsources[r],normal,a);specular(&pixels[3*i],lightsources[r],normal,scalarmulti(-1,rt.dir),a);
-          }
-          if(level<max_level){
-          retr+=rayTracerRecurse(ref,i,level+1,picxels)+rayTracerRecurse(refrac,i,level+1,pixels)+ambience();
-        }
+//             }
+//           else
+//           {
+//             l=intersectPlane((a.p),ty.org,ty.dir,k);
+//             if(l)
+//               break;
+//           }
+//         }
+//         double ret=0;
+//         if(!l)
+//           {
+//             retr+=diffuse(&pixels[3*i],lightsources[r],normal,a);specular(&pixels[3*i],lightsources[r],normal,scalarmulti(-1,rt.dir),a);
+//           }
+//           if(level<max_level){
+//           retr+=rayTracerRecurse(ref,i,level+1,picxels)+rayTracerRecurse(refrac,i,level+1,pixels)+ambience();
+//         }
          
-      }
-    }
-}
+//       }
+//     }
+// }
 
 
 
@@ -343,9 +343,9 @@ void raytracer()
         if(!l)
           {
             diffuse(&pixels[3*i],lightsources[r],normal,a);specular(&pixels[3*i],lightsources[r],normal,scalarmulti(-1,rt.dir),a);
-            pixels[3*i]+ = rayTracerRecurse(ref,0,i,r)+rayTracerRecurse(refrac,0,i,r);
-      pixels[3*i+1]+= rayTracerRecurse(ref,0,i,r)+rayTracerRecurse(refrac,0,i,r);
-      pixels[3*i+2] +=rayTracerRecurse(ref,0,i,r)+rayTracerRecurse(refrac,0,i,r);
+      //       pixels[3*i]+ = rayTracerRecurse(ref,0,i,r)+rayTracerRecurse(refrac,0,i,r);
+      // pixels[3*i+1]+= rayTracerRecurse(ref,0,i,r)+rayTracerRecurse(refrac,0,i,r);
+      // pixels[3*i+2] +=rayTracerRecurse(ref,0,i,r)+rayTracerRecurse(refrac,0,i,r);
           }
          
       }
