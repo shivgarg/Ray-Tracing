@@ -61,6 +61,7 @@ class Object{
   double ka[3],kd[3],ks[3];
   double kreflec,krefrac,n;
   double exp;
+  Object(){};
   Object(int a, Sphere b){
     type = a;
     s = b;
@@ -236,7 +237,7 @@ void reshape(int x, int y)
 } 
 
 
-vector3d viewporttovcs(int x,int y)
+vector3d viewporttovcs(float x,float y)
 {
   x=x-viewx/2.0;y=viewy/2.0-y;
   float x1  =  (float)(x)*((float)viewl)/((float)viewx);
@@ -254,8 +255,8 @@ vector3d rayTracerRecurse(Ray rt,  int level){
      int h=obj.size();
      double k=t;
      vector3d normal;vector3d retr(0,0,0);
-     cout << rt.org.x<< " "<< rt.org.y <<" "<< rt.org.z <<"  recurse " << endl;
-     cout << rt.dir.x<< " "<< rt.dir.y <<" "<< rt.dir.z <<"  recurse " << endl;
+     //cout << rt.org.x<< " "<< rt.org.y <<" "<< rt.org.z <<"  recurse " << endl;
+     //cout << rt.dir.x<< " "<< rt.dir.y <<" "<< rt.dir.z <<"  recurse " << endl;
      int intersectid;
      for(int j=0;j<h;j++)
       {
@@ -272,11 +273,11 @@ vector3d rayTracerRecurse(Ray rt,  int level){
         } 
         else if(k==0)
         {
-          cout << "intersecting with same sphere"<< endl;
+          //cout << "intersecting with same sphere"<< endl;
         }
       }
       if(t!=INT_MAX){
-        cout <<  "intersect yes "<< t<<endl;
+        //cout <<  "intersect yes "<< t<<endl;
         Object a = obj[intersectid];
         if(a.type==1){
           normal = norm(subvec(addvec(rt.org,scalarmulti(t,rt.dir)),a.s.c));
@@ -317,25 +318,25 @@ vector3d rayTracerRecurse(Ray rt,  int level){
         if(!l)
           {
             
-            cout << "intensity sdfjsfjsgjsdgdshgf"<< endl;
-            cout << "Retr "<< retr.x << " "<< retr.y << " "<< retr.z << endl;
+            //cout << "intensity sdfjsfjsgjsdgdshgf"<< endl;
+            //cout << "Retr "<< retr.x << " "<< retr.y << " "<< retr.z << endl;
             retr = addvec( retr, scalarmulti(1-a.kreflec-a.krefrac,diffuserecur(lightsources[r],normal,a)));
-            cout << "normal "<< 
-            cout << "Retr "<< retr.x << " "<< retr.y << " "<< retr.z << endl;
+            //cout << "normal "<< 
+            //cout << "Retr "<< retr.x << " "<< retr.y << " "<< retr.z << endl;
             retr = addvec(retr, scalarmulti(1-a.kreflec-a.krefrac,specularrecur(lightsources[r],normal,scalarmulti(-1,rt.dir),a)));
-            cout << "Retr "<< retr.x << " "<< retr.y << " "<< retr.z << endl;
+            //cout << "Retr "<< retr.x << " "<< retr.y << " "<< retr.z << endl;
           }
       }
       if(level<MAX_DEPTH){
 
         retr=addvec(retr,scalarmulti(a.kreflec,rayTracerRecurse(Ray(addvec(rt.org,scalarmulti(t,rt.dir)),reflected(normal,rt.dir)),level+1)));
         vector3d intpt=addvec(rt.org,scalarmulti(t,rt.dir));
-      cout << "secondary Sphere "<< a.s.c.x<< " "<< a.s.c.y << "  "<<a.s.c.z<< endl;
-      cout << "secondary point "<< intpt.x << " "<< intpt.y << " "<< intpt.z << endl;
-      cout << "sec Normal "<< normal.x << " "<< normal.y << " "<< normal.z << endl;
-      vector3d refa=refracted(normal,a.n,rt.dir);
-      cout << "sec refrac "<< refa.x << " "<< refa.y << " "<< refa.z << endl;
-      cout <<"sec inc ray "<< rt.dir.x << " "<< rt.dir.y << " "<< rt.dir.z << endl;
+      //cout << "secondary Sphere "<< a.s.c.x<< " "<< a.s.c.y << "  "<<a.s.c.z<< endl;
+      //cout << "secondary point "<< intpt.x << " "<< intpt.y << " "<< intpt.z << endl;
+      //cout << "sec Normal "<< normal.x << " "<< normal.y << " "<< normal.z << endl;
+      //vector3d refa=refracted(normal,a.n,rt.dir);
+      //cout << "sec refrac "<< refa.x << " "<< refa.y << " "<< refa.z << endl;
+      //cout <<"sec inc ray "<< rt.dir.x << " "<< rt.dir.y << " "<< rt.dir.z << endl;
 
 
 
@@ -392,8 +393,12 @@ void raytracer()
   for(int i=0;i<viewx*viewy;i++)
   {
     retr = vector3d(0,0,0);
-    vector3d f=viewporttovcs(i%viewx,i/viewx);
-    Ray rt(eye,norm(subvec(f,eye)));
+    for(int op=-1;op<2;op++)
+      {for(int yu=-1;yu<2;yu++)
+    {
+      
+      vector3d f=viewporttovcs((float)(i%viewx)+op*0.33,(float)(i/viewx)+yu*0.33);
+      Ray rt(eye,norm(subvec(f,eye)));
      //cout << rt.org.x<< " "<< rt.org.y << " "<<rt.org.z << " primary ray origin "<< endl;
      //cout << rt.dir.x<< " "<< rt.dir.y << " "<<rt.dir.z << " primary ray direction "<< endl;
     double t = INT_MAX;
@@ -466,14 +471,15 @@ void raytracer()
       }
       retr=addvec(retr,scalarmulti(a.kreflec,rayTracerRecurse(Ray(addvec(rt.org,scalarmulti(t,rt.dir)),reflected(normal,rt.dir)),1)));
       vector3d intpt=addvec(rt.org,scalarmulti(t,rt.dir));
-      cout << "Sphere "<< a.s.c.x<< " "<< a.s.c.y << "  "<<a.s.c.z<< endl;
-      cout << "point "<< intpt.x << " "<< intpt.y << " "<< intpt.z << endl;
-      cout << "Normal "<< normal.x << " "<< normal.y << " "<< normal.z << endl;
-      vector3d refa=refracted(normal,a.n,rt.dir);
-      cout << "refrac "<< refa.x << " "<< refa.y << " "<< refa.z << endl;
-      cout <<"inc ray "<< rt.dir.x << " "<< rt.dir.y << " "<< rt.dir.z << endl;
+      //cout << "Sphere "<< a.s.c.x<< " "<< a.s.c.y << "  "<<a.s.c.z<< endl;
+      //cout << "point "<< intpt.x << " "<< intpt.y << " "<< intpt.z << endl;
+      //cout << "Normal "<< normal.x << " "<< normal.y << " "<< normal.z << endl;
+      //vector3d refa=refracted(normal,a.n,rt.dir);
+      //cout << "refrac "<< refa.x << " "<< refa.y << " "<< refa.z << endl;
+      //cout <<"inc ray "<< rt.dir.x << " "<< rt.dir.y << " "<< rt.dir.z << endl;
 
-      retr=addvec(retr,scalarmulti(a.krefrac,rayTracerRecurse(Ray(addvec(rt.org,scalarmulti(t,rt.dir)),refracted(normal,a.n,rt.dir)),1)));
+      retr=addvec(retr,scalarmulti(a.krefrac,rayTracerRecurse(Ray(addvec(rt.org,scalarmulti(t,rt.dir)),refracted(normal,a.n,rt.dir)),1)));}}
+      retr=scalarmulti(1.0/9.0,retr);     
       pixels[3*i]=retr.x;pixels[3*i+1]=retr.y;pixels[3*i+2]=retr.z;
       //cout<< pixels[3*i]<<" "<<pixels[3*i+1]<<" "<<pixels[3*i+2]<< " primary"<<endl;
     }
@@ -490,14 +496,19 @@ int main (int argc, char **argv)
 {
     
     glutInit(&argc, argv); 
-    viewx=1024;viewy=1024;viewl = 200;
-    viewb = 200;
+    // viewx=1024;viewy=1024;viewl = 200;
+    // viewb = 200;
+    scanf("%d",&viewx);scanf("%d",&viewy);scanf("%d",&viewl);scanf("%d",&viewb);
+    scanf("%lf",&u.x);scanf("%lf",&u.y);scanf("%lf",&u.z);
+    scanf("%lf",&v.x);scanf("%lf",&v.y);scanf("%lf",&v.z);
+    scanf("%lf",&vcs.x);scanf("%lf",&vcs.y);scanf("%lf",&vcs.z);
+    scanf("%lf",&disteye);
     glutInitWindowSize(viewx,viewy);
     glutCreateWindow("Solid Sphere");
-    u = vector3d(1,0,0);
-    v = vector3d(0,-1,0);
-    vector3d vcs = vector3d(0,0,0);
-    disteye = 100;
+    // u = vector3d(1,0,0);
+    // v = vector3d(0,-1,0);
+    // vector3d vcs = vector3d(0,0,0);
+    // disteye = 100;
     
     n=cross_prod(u,v);
     n=norm(n);
@@ -505,44 +516,97 @@ int main (int argc, char **argv)
 
     eye=subvec(vcs,scalarmulti(disteye,n));
     //cout <<"normal "<< eye.x << " "<<eye.y<<" "<< eye.z<< endl;
-    Object o(1, Sphere(vector3d(0.0,0.0,0.0),30));
-    o.ka[0]=0.3;
-    o.ka[1]=0.1;
-    o.ka[2]=0;
-    o.kd[0]=0.5;
-    o.kd[1]=0.1;
-    o.kd[2]=0.2;
-    o.ks[0]=0.2;
-    o.ks[1]=0.4;
-    o.ks[2]=0.1;
-    o.exp=50.0;
-    o.kreflec = 0.2;
-    o.krefrac = 0.0;
-    o.n = 1;
-  obj.push_back(o);
-    o = Object(1, Sphere(vector3d(45.0,0.0,0),10));
-    o.ka[0]=0 ;
-    o.ka[1]=0.3;
-    o.ka[2]=0.6;
-    o.kd[0]=0.2;
-    o.kd[1]=0.3;
-    o.kd[2]=0.2;
-    o.ks[0]=0.1;
-    o.ks[1]=0.2;
-    o.ks[2]=0.1;
-    o.exp=30.0;
-    o.kreflec = 0.3;
-    o.krefrac = 0;
-    o.n = 1;
-    obj.push_back(o);
-    lightsource ll = lightsource( 1,1,1 ,vector3d(-0.707,0,-0.707));
-    //lightsource ll = lightsource( 1,1,1 ,vector3d(0.577,0.577,0.577));
-    //lightsource ll = lightsource( 1,1,1 ,vector3d(0,0,1.0));
-    lightsources.push_back(ll);
-    //obj.push_back();
-//ll=lightsource(1,0,0,vector3d(-0.577,0.577,0.577));
-//lightsources.push_back(ll);
-    double t=0;
+    int no;
+    scanf("%d",&no);
+    for(int g=0;g<no;g++)
+    {
+      Object a;
+      int q;
+      scanf("%d",&q);
+      if(q==1)
+      {
+        a.type=1;
+        scanf("%lf %lf %lf %lf",&a.s.c.x,&a.s.c.y,&a.s.c.z,&a.s.r);
+      }
+      else
+      {
+        a.type=2;
+        scanf("%lf %lf %lf",&a.p.x.x,&a.p.x.y,&a.p.x.z);
+        scanf("%lf %lf %lf",&a.p.y.x,&a.p.y.y,&a.p.y.z);
+        scanf("%lf %lf %lf",&a.p.z.x,&a.p.z.y,&a.p.z.z);  
+
+      }
+      scanf("%lf %lf %lf",&a.ka[0],&a.ka[1],&a.ka[2]);
+      scanf("%lf %lf %lf",&a.kd[0],&a.kd[1],&a.kd[2]);
+      scanf("%lf %lf %lf",&a.ks[0],&a.ks[1],&a.ks[2]);
+      scanf("%lf %lf %lf %lf",&a.exp,&a.kreflec,&a.krefrac,&a.n);
+      obj.push_back(a);
+    }
+    scanf("%lf %lf %lf",&ambientintensity[0],&ambientintensity[1],&ambientintensity[2]);
+    scanf("%d",&no);
+    for(int gh=0;gh<no;gh++)
+    {
+      lightsource ll;
+      scanf("%lf %lf %lf",&ll.intensity[0],&ll.intensity[1],&ll.intensity[2]);
+      scanf("%lf %lf %lf",&ll.direction.x,&ll.direction.y,&ll.direction.z);
+      lightsources.push_back(ll);
+    }
+//     Object o(1, Sphere(vector3d(0.0,0.0,0.0),30));
+//     o.ka[0]=0.3;
+//     o.ka[1]=0.1;
+//     o.ka[2]=0;
+//     o.kd[0]=0.5;
+//     o.kd[1]=0.1;
+//     o.kd[2]=0.2;
+//     o.ks[0]=0.2;
+//     o.ks[1]=0.4;
+//     o.ks[2]=0.1;
+//     o.exp=50.0;
+//     o.kreflec = 1.0;
+//     o.krefrac = 0.0;
+//     o.n = 1;
+//   obj.push_back(o);
+//     o = Object(1, Sphere(vector3d(45.0,0.0,0),10));
+//     o.ka[0]=0 ;
+//     o.ka[1]=0.3;
+//     o.ka[2]=0.6;
+//     o.kd[0]=0.2;
+//     o.kd[1]=0.3;
+//     o.kd[2]=0.2;
+//     o.ks[0]=0.1;
+//     o.ks[1]=0.2;
+//     o.ks[2]=0.1;
+//     o.exp=30.0;
+//     o.kreflec = 0.3;
+//     o.krefrac = 0;
+//     o.n = 1;
+//     obj.push_back(o);
+//     o = Object(1, Sphere(vector3d(0.0,50.0,30),15));
+//     o.ka[0]=1 ;
+//     o.ka[1]=0.3;
+//     o.ka[2]=0.6;
+//     o.kd[0]=0.2;
+//     o.kd[1]=0.3;
+//     o.kd[2]=0.2;
+//     o.ks[0]=1;
+//     o.ks[1]=1;
+//     o.ks[2]=1;
+//     o.exp=250.0;
+//     o.kreflec = 0.3;
+//     o.krefrac = 0.2;
+//     o.n = 1;
+//     obj.push_back(o);
+//     lightsource ll = lightsource( 1,1,1 ,vector3d(-0.707,0,-0.707));
+//     //lightsource ll = lightsource( 1,1,1 ,vector3d(0.577,0.577,0.577));
+//     //lightsource ll = lightsource( 1,1,1 ,vector3d(0,0,1.0));
+//     lightsources.push_back(ll);
+//     //obj.push_back();
+// // ll=lightsource(1,0,0,vector3d(-0.577,-0.577,0.577));
+
+// // lightsources.push_back(ll);
+// ll=lightsource(1,1,1,vector3d(0,-1,0));
+// lightsources.push_back(ll);
+//     double t=0;
  //    Plane p(new vector3d(1.0,0.0,0.0),new vector3d(0.0,1.0,0.0),new vector3d(0.0,0.0,0.0));
  //    vector3d a(0.9,0.9,-0.2);
  //    vector3d b(0.0,0.0,1.0);
