@@ -158,17 +158,27 @@ void specular(lightsource l, vector3d normal, vector3d v,Object o){
 bool intersectPlane(Plane p, vector3d origin,vector3d direct , double &t)
 {
     // assuming vectors are all normalized
-
+  //cout<<"here"<<endl;
+    //cout<< origin.x<<origin.y<<origin.y<<endl;
     vector3d normal =  norm(cross_prod(subvec(p.x,p.y),subvec(p.x,p.z)));
+    cout <<normal.x<<normal.y<<normal.z<<endl;
     float denom = dot(normal, direct);
-    if (denom > 1e-6) {
+    //cout<<"denom"<<denom<<endl;
+    if (fabs(denom) > 1e-3) {
         vector3d a = subvec(p.x , origin);
         t = dot(a, normal) / denom;
         vector3d point;
         point  = addvec(origin, scalarmulti(t,direct));
-        if(t>=0){
+        if(t>1e-3){
+          //cout<<t<<endl;
           ////cout<<area(point,p.x,p.y)<<" "<<area(point,p.z,p.y)<<" "<<area(point,p.x,p.z)<<" "<<area(p.z,p.x,p.y)<<endl;
-          return ((area(point,p.x,p.y)+area(point,p.z,p.y)+area(point,p.x,p.z)) == area(p.z,p.x,p.y));
+          if (fabs( (area(point,p.x,p.y)+area(point,p.z,p.y)+area(point,p.x,p.z)) - area(p.z,p.x,p.y))<(pow(10,-2))) {
+            cout<<"got"<< t<<endl;
+            return true;
+          }
+          else{
+            return false;
+          }
         }
     }
     return false;
@@ -267,7 +277,7 @@ vector3d rayTracerRecurse(Ray rt,  int level){
           }
         else
           p=intersectPlane((a.p),rt.org,rt.dir,k);
-        if(k<t && k>0){
+        if(k<t && k>0 && p==true){
           t=k;
           intersectid=j;
         } 
@@ -351,7 +361,7 @@ vector3d rayTracerRecurse(Ray rt,  int level){
       
     }
     else
-      return vector3d(0,0,0);
+      return vector3d(ambientintensity[0],ambientintensity[1],ambientintensity[2]);
 }
 
 vector3d reflected(vector3d normal,vector3d l)
@@ -361,6 +371,7 @@ vector3d reflected(vector3d normal,vector3d l)
 
 vector3d refracted(vector3d normal,double n,vector3d inc)
 {
+
   double cos1=dot(inc,normal);double n1,n2;
   if(cos1>0)
   {
@@ -393,9 +404,11 @@ void raytracer()
   for(int i=0;i<viewx*viewy;i++)
   {
     retr = vector3d(0,0,0);
-    for(int op=-1;op<2;op++)
-      {for(int yu=-1;yu<2;yu++)
-    {
+    int op=0;
+    int yu=0;
+    // for(int op=-1;op<2;op++)
+    //   {for(int yu=-1;yu<2;yu++)
+    // {
       
       vector3d f=viewporttovcs((float)(i%viewx)+op*0.33,(float)(i/viewx)+yu*0.33);
       Ray rt(eye,norm(subvec(f,eye)));
@@ -413,15 +426,18 @@ void raytracer()
         {
           p=intersectsphere(&(a.s),&k,&rt);
         }
-      else
-        p=intersectPlane((a.p),rt.org,rt.dir,k);
-      if(k<t && k>0){
+      else{
+        cout<< rt.dir.x<<" "<<rt.dir.y<<" "<<rt.dir.z<<endl;
+        p=intersectPlane((a.p),rt.org,rt.dir,k);        
+      }
+      if(k<t && k>0 && p){
         t=k;
         intersectid=j;
       } 
     }
     if(t!=INT_MAX){
       Object a = obj[intersectid];
+      cout << intersectid<< "intersect plane "<< endl;
       if(a.type==1){
         normal = norm(subvec(addvec(rt.org,scalarmulti(t,rt.dir)),a.s.c));
       }
@@ -462,15 +478,17 @@ void raytracer()
         }
         if(!l)
           {
+            cout<< normal.x << " "<<normal.y <<" "<<normal.z<< "   primary "<<endl;
             retr = addvec( retr, scalarmulti(1-a.kreflec-a.krefrac,diffuserecur(lightsources[r],normal,a)));
+            cout<< retr.x << " "<<retr.y <<" "<<retr.z<< "   primary "<<endl;
             retr = addvec(retr, scalarmulti(1-a.kreflec-a.krefrac,specularrecur(lightsources[r],normal,scalarmulti(-1,rt.dir),a)));
-           // cout<< retr.x << " "<<retr.y <<" "<<retr.z<< "   primary "<<endl;
+            cout<< retr.x << " "<<retr.y <<" "<<retr.z<< "   primary "<<endl;
           }
 
          
       }
       retr=addvec(retr,scalarmulti(a.kreflec,rayTracerRecurse(Ray(addvec(rt.org,scalarmulti(t,rt.dir)),reflected(normal,rt.dir)),1)));
-      vector3d intpt=addvec(rt.org,scalarmulti(t,rt.dir));
+      //vector3d intpt=addvec(rt.org,scalarmulti(t,rt.dir));
       //cout << "Sphere "<< a.s.c.x<< " "<< a.s.c.y << "  "<<a.s.c.z<< endl;
       //cout << "point "<< intpt.x << " "<< intpt.y << " "<< intpt.z << endl;
       //cout << "Normal "<< normal.x << " "<< normal.y << " "<< normal.z << endl;
@@ -478,10 +496,11 @@ void raytracer()
       //cout << "refrac "<< refa.x << " "<< refa.y << " "<< refa.z << endl;
       //cout <<"inc ray "<< rt.dir.x << " "<< rt.dir.y << " "<< rt.dir.z << endl;
 
-      retr=addvec(retr,scalarmulti(a.krefrac,rayTracerRecurse(Ray(addvec(rt.org,scalarmulti(t,rt.dir)),refracted(normal,a.n,rt.dir)),1)));}}
-      retr=scalarmulti(1.0/9.0,retr);     
+      retr=addvec(retr,scalarmulti(a.krefrac,rayTracerRecurse(Ray(addvec(rt.org,scalarmulti(t,rt.dir)),refracted(normal,a.n,rt.dir)),1)));
+      // }}
+      //retr=scalarmulti(1.0/9.0,retr);     
       pixels[3*i]=retr.x;pixels[3*i+1]=retr.y;pixels[3*i+2]=retr.z;
-      //cout<< pixels[3*i]<<" "<<pixels[3*i+1]<<" "<<pixels[3*i+2]<< " primary"<<endl;
+      cout<< pixels[3*i]<<" "<<pixels[3*i+1]<<" "<<pixels[3*i+2]<< " pixels "<<i%viewx <<" "<<i/viewx<<endl;
     }
   }
     glDrawPixels(viewx,viewy,GL_RGB,GL_FLOAT,pixels);
