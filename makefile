@@ -1,4 +1,4 @@
 affine:
-	g++ affine.cpp -lGL -lGLU -lglut
+	g++ affine.cpp -lGL -lGLU -lglut -o affine
 main:
-	g++ 1.cpp -lGL -lGLU -lglut
+	g++ 1.cpp -lGL -lGLU -lglut -o main

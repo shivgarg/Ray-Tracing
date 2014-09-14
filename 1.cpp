@@ -111,7 +111,6 @@ void diffuse(float*f,lightsource l, vector3d normal, Object o){
     double temp = o.kd[i]*(l.intensity[i])*dot(l.direction,normal);
     *(f+i)+= max(-1*temp,0.0);
   }
-
 }
 
 
@@ -157,11 +156,9 @@ void specular(lightsource l, vector3d normal, vector3d v,Object o){
 
 bool intersectPlane(Plane p, vector3d origin,vector3d direct , double &t)
 {
-    // assuming vectors are all normalized
-  //cout<<"here"<<endl;
     //cout<< origin.x<<origin.y<<origin.y<<endl;
     vector3d normal =  norm(cross_prod(subvec(p.x,p.y),subvec(p.x,p.z)));
-    cout <<normal.x<<normal.y<<normal.z<<endl;
+    //cout <<normal.x<<normal.y<<normal.z<<endl;
     float denom = dot(normal, direct);
     //cout<<"denom"<<denom<<endl;
     if (fabs(denom) > 1e-3) {
@@ -173,7 +170,7 @@ bool intersectPlane(Plane p, vector3d origin,vector3d direct , double &t)
           //cout<<t<<endl;
           ////cout<<area(point,p.x,p.y)<<" "<<area(point,p.z,p.y)<<" "<<area(point,p.x,p.z)<<" "<<area(p.z,p.x,p.y)<<endl;
           if (fabs( (area(point,p.x,p.y)+area(point,p.z,p.y)+area(point,p.x,p.z)) - area(p.z,p.x,p.y))<(pow(10,-2))) {
-            cout<<"got"<< t<<endl;
+            //cout<<"got"<< t<<endl;
             return true;
           }
           else{
@@ -205,10 +202,6 @@ bool intersectsphere(Sphere * c,double *t,Ray * r)
            *t=min(t0,t1);
             return true;
           }
-          // else if((max(t0,t1))>0){
-          //  *t=max(t0,t1);
-          //   return true;
-          // }
           else{
             return false;
           }
@@ -223,11 +216,8 @@ bool intersectsphere(Sphere * c,double *t,Ray * r)
 void display()
 {
     glMatrixMode(GL_MODELVIEW);
-    // clear the drawing buffer.
     glClear(GL_COLOR_BUFFER_BIT);
     float* pixels = new float[viewx*viewy*3];
-  //   for(int i=0;i<viewx*viewy;i++) {
-  // } 
   glDrawPixels(viewx,viewy,GL_RGB,GL_FLOAT,pixels);
     glFlush();        
     glutSwapBuffers();
@@ -240,10 +230,9 @@ void reshape(int x, int y)
     if (y == 0 || x == 0) return;   
     glMatrixMode(GL_PROJECTION);  
     glLoadIdentity(); 
-
     glOrtho(-10.0, 10.0, -10.0, 10.0, -100.0, 100.0);
     glMatrixMode(GL_MODELVIEW);
-    glViewport(0,0,x,y);  //Use the whole window for rendering
+    glViewport(0,0,x,y);
 } 
 
 
@@ -265,8 +254,6 @@ vector3d rayTracerRecurse(Ray rt,  int level){
      int h=obj.size();
      double k=t;
      vector3d normal;vector3d retr(0,0,0);
-     //cout << rt.org.x<< " "<< rt.org.y <<" "<< rt.org.z <<"  recurse " << endl;
-     //cout << rt.dir.x<< " "<< rt.dir.y <<" "<< rt.dir.z <<"  recurse " << endl;
      int intersectid;
      for(int j=0;j<h;j++)
       {
@@ -287,15 +274,13 @@ vector3d rayTracerRecurse(Ray rt,  int level){
         }
       }
       if(t!=INT_MAX){
-        //cout <<  "intersect yes "<< t<<endl;
         Object a = obj[intersectid];
         if(a.type==1){
           normal = norm(subvec(addvec(rt.org,scalarmulti(t,rt.dir)),a.s.c));
         }
         else{
           normal = norm(cross_prod(subvec(a.p.x,a.p.y),subvec(a.p.x,a.p.z)));
-        }
-      
+        }      
 
         //////////////// SHadow///////////////////////
       for(int r=0;r<lightsources.size();r++)
@@ -303,6 +288,7 @@ vector3d rayTracerRecurse(Ray rt,  int level){
         bool l =false;
         vector3d src=addvec(rt.org,scalarmulti(t,rt.dir));
         Ray ty(src,scalarmulti(-1,lightsources[r].direction));
+        int ghj;
         for(int j=0;j<h;j++)
         {
           if(j==intersectid){
@@ -314,14 +300,16 @@ vector3d rayTracerRecurse(Ray rt,  int level){
                l=intersectsphere(&(a.s),&k,&ty);
                if(l)
                 { //cout << "J "<< j << "R "<< intersectid<< endl;
-              break;}
+              ghj=j;
+                break;
+               }
 
             }
           else
           {
             l=intersectPlane((a.p),ty.org,ty.dir,k);
             if(l)
-              break;
+           {   ghj=j;break;}
           }
         }
         
@@ -336,29 +324,27 @@ vector3d rayTracerRecurse(Ray rt,  int level){
             retr = addvec(retr, scalarmulti(1-a.kreflec-a.krefrac,specularrecur(lightsources[r],normal,scalarmulti(-1,rt.dir),a)));
             //cout << "Retr "<< retr.x << " "<< retr.y << " "<< retr.z << endl;
           }
+         else{
+          retr = addvec( retr, scalarmulti((1-a.kreflec-a.krefrac)*(obj[ghj].krefrac),diffuserecur(lightsources[r],normal,a)));
+          retr = addvec(retr, scalarmulti((1-a.kreflec-a.krefrac)*(obj[ghj].krefrac),specularrecur(lightsources[r],normal,scalarmulti(-1,rt.dir),a)));
+        }
+
       }
       if(level<MAX_DEPTH){
 
         retr=addvec(retr,scalarmulti(a.kreflec,rayTracerRecurse(Ray(addvec(rt.org,scalarmulti(t,rt.dir)),reflected(normal,rt.dir)),level+1)));
-        vector3d intpt=addvec(rt.org,scalarmulti(t,rt.dir));
-      //cout << "secondary Sphere "<< a.s.c.x<< " "<< a.s.c.y << "  "<<a.s.c.z<< endl;
-      //cout << "secondary point "<< intpt.x << " "<< intpt.y << " "<< intpt.z << endl;
-      //cout << "sec Normal "<< normal.x << " "<< normal.y << " "<< normal.z << endl;
-      //vector3d refa=refracted(normal,a.n,rt.dir);
-      //cout << "sec refrac "<< refa.x << " "<< refa.y << " "<< refa.z << endl;
-      //cout <<"sec inc ray "<< rt.dir.x << " "<< rt.dir.y << " "<< rt.dir.z << endl;
-
-
-
-
+        //vector3d intpt=addvec(rt.org,scalarmulti(t,rt.dir));
+        //cout << "secondary Sphere "<< a.s.c.x<< " "<< a.s.c.y << "  "<<a.s.c.z<< endl;
+        //cout << "secondary point "<< intpt.x << " "<< intpt.y << " "<< intpt.z << endl;
+        //cout << "sec Normal "<< normal.x << " "<< normal.y << " "<< normal.z << endl;
+        //vector3d refa=refracted(normal,a.n,rt.dir);
+        //cout << "sec refrac "<< refa.x << " "<< refa.y << " "<< refa.z << endl;
+        //cout <<"sec inc ray "<< rt.dir.x << " "<< rt.dir.y << " "<< rt.dir.z << endl;
         retr=addvec(retr,scalarmulti(a.krefrac,rayTracerRecurse(Ray(addvec(rt.org,scalarmulti(t,rt.dir)),refracted(normal,a.n,rt.dir)),level+1)));
-        
       }
       retr=addvec(retr,scalarmulti(1-a.kreflec-a.krefrac,ambientrecur(a)));
       //cout<< retr.x << " "<<retr.y <<" "<<retr.z<< "  "<< level<<endl;
-      return retr;
-         
-      
+      return retr;      
     }
     else
       return vector3d(ambientintensity[0],ambientintensity[1],ambientintensity[2]);
@@ -404,11 +390,11 @@ void raytracer()
   for(int i=0;i<viewx*viewy;i++)
   {
     retr = vector3d(0,0,0);
-    int op=0;
-    int yu=0;
-    // for(int op=-1;op<2;op++)
-    //   {for(int yu=-1;yu<2;yu++)
-    // {
+    // int op=0;
+    // int yu=0;
+    for(int op=-1;op<2;op++)
+      {for(int yu=-1;yu<2;yu++)
+    {
       
       vector3d f=viewporttovcs((float)(i%viewx)+op*0.33,(float)(i/viewx)+yu*0.33);
       Ray rt(eye,norm(subvec(f,eye)));
@@ -427,7 +413,7 @@ void raytracer()
           p=intersectsphere(&(a.s),&k,&rt);
         }
       else{
-        cout<< rt.dir.x<<" "<<rt.dir.y<<" "<<rt.dir.z<<endl;
+        //cout<< rt.dir.x<<" "<<rt.dir.y<<" "<<rt.dir.z<<endl;
         p=intersectPlane((a.p),rt.org,rt.dir,k);        
       }
       if(k<t && k>0 && p){
@@ -437,7 +423,7 @@ void raytracer()
     }
     if(t!=INT_MAX){
       Object a = obj[intersectid];
-      cout << intersectid<< "intersect plane "<< endl;
+      //cout << intersectid<< "intersect plane "<< endl;
       if(a.type==1){
         normal = norm(subvec(addvec(rt.org,scalarmulti(t,rt.dir)),a.s.c));
       }
@@ -447,7 +433,7 @@ void raytracer()
       pixels[3*i] = 0;
       pixels[3*i+1] = 0;
       pixels[3*i+2] = 0;
-      ambient(&pixels[3*i],a);
+      retr = addvec(retr,ambientrecur(a));
 
 //////////////// Shadow///////////////////////
       for(int r=0;r<lightsources.size();r++)
@@ -455,6 +441,7 @@ void raytracer()
         bool l =false;
         vector3d src=addvec(rt.org,scalarmulti(t,rt.dir));
         Ray ty(src,scalarmulti(-1,lightsources[r].direction));
+        int ghj;
         for(int j=0;j<h;j++)
         {
           if(j==intersectid){
@@ -465,7 +452,7 @@ void raytracer()
             {
                l=intersectsphere(&(a.s),&k,&ty);
                if(l)
-                { //cout << "J "<< j << "R "<< intersectid<< endl;
+                { ghj=j;//cout << "J "<< j << "R "<< intersectid<< endl;
               break;}
 
             }
@@ -473,17 +460,21 @@ void raytracer()
           {
             l=intersectPlane((a.p),ty.org,ty.dir,k);
             if(l)
-              break;
+              {ghj=j;break;}
           }
         }
         if(!l)
           {
-            cout<< normal.x << " "<<normal.y <<" "<<normal.z<< "   primary "<<endl;
+            //cout<< normal.x << " "<<normal.y <<" "<<normal.z<< "   primary "<<endl;
             retr = addvec( retr, scalarmulti(1-a.kreflec-a.krefrac,diffuserecur(lightsources[r],normal,a)));
-            cout<< retr.x << " "<<retr.y <<" "<<retr.z<< "   primary "<<endl;
+            //cout<< retr.x << " "<<retr.y <<" "<<retr.z<< "   primary "<<endl;
             retr = addvec(retr, scalarmulti(1-a.kreflec-a.krefrac,specularrecur(lightsources[r],normal,scalarmulti(-1,rt.dir),a)));
-            cout<< retr.x << " "<<retr.y <<" "<<retr.z<< "   primary "<<endl;
+            //cout<< retr.x << " "<<retr.y <<" "<<retr.z<< "   primary "<<endl;
           }
+        else{
+          retr = addvec( retr, scalarmulti((1-a.kreflec-a.krefrac)*obj[ghj].krefrac,diffuserecur(lightsources[r],normal,a)));
+          retr = addvec(retr, scalarmulti((1-a.kreflec-a.krefrac)*obj[ghj].krefrac,specularrecur(lightsources[r],normal,scalarmulti(-1,rt.dir),a)));
+        }
 
          
       }
@@ -497,11 +488,12 @@ void raytracer()
       //cout <<"inc ray "<< rt.dir.x << " "<< rt.dir.y << " "<< rt.dir.z << endl;
 
       retr=addvec(retr,scalarmulti(a.krefrac,rayTracerRecurse(Ray(addvec(rt.org,scalarmulti(t,rt.dir)),refracted(normal,a.n,rt.dir)),1)));
-      // }}
-      //retr=scalarmulti(1.0/9.0,retr);     
-      pixels[3*i]=retr.x;pixels[3*i+1]=retr.y;pixels[3*i+2]=retr.z;
-      cout<< pixels[3*i]<<" "<<pixels[3*i+1]<<" "<<pixels[3*i+2]<< " pixels "<<i%viewx <<" "<<i/viewx<<endl;
+      }}
+      //cout<< pixels[3*i]<<" "<<pixels[3*i+1]<<" "<<pixels[3*i+2]<< " pixels "<<i%viewx <<" "<<i/viewx<<endl;
     }
+      retr=scalarmulti(1.0/9.0,retr);     
+      pixels[3*i]=retr.x;pixels[3*i+1]=retr.y;pixels[3*i+2]=retr.z;
+
   }
     glDrawPixels(viewx,viewy,GL_RGB,GL_FLOAT,pixels);
     glFlush();        

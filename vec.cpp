@@ -60,3 +60,13 @@ double mod(vector3d a)
 {
     return sqrt(a.x*a.x+a.y*a.y+a.z*a.z);
 }
+
+
+vector3d mult(vector3d a,double * mat)
+{
+    double b = mat[0]*a.x+a.y*mat[3]+a.z*mat[6];
+    double c=mat[1]*a.x+a.y*mat[4]+a.z*mat[7];
+    double d=mat[2]*a.x+a.y*mat[5]+a.z*mat[8];
+    vector3d ret(b,c,d);
+    return ret;
+}
